@@ -1,10 +1,9 @@
-module reg( 
+module reg2(
 input in, 
 input clk,
 input load,
-output reg out);
+output out);
 
-wire muxout;
 wire dffin;
 
 mux mymux({in,out},load,dffin);

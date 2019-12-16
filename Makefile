@@ -1,10 +1,13 @@
 CC=iverilog
 CFLAGS=-I.
-TOTEST=testdff
+TOTEST=testreg
 
-run: clean testmux.o testdemux.o testdff.o testmux4way16.o testprimitives.o
+run: clean testmux.o testdemux.o testdff.o testmux4way16.o testprimitives.o testreg.o
 	vvp $(TOTEST).o
 	gtkwave $(TOTEST).vcd
+
+testreg.o: mux.v dff.v reg.v reg8.v reg16.v testreg.v
+	iverilog -o testreg.o mux.v dff.v reg.v reg8.v reg16.v testreg.v
 
 testprimitives.o: or.v and.v xor.v nand.v not.v testprimitives.v and16.v or16.v not16.v
 	iverilog -o testprimitives.o or.v and.v xor.v nand.v not.v and16.v or16.v not16.v testprimitives.v
