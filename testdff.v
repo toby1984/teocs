@@ -1,6 +1,5 @@
 module top;
   reg in=1;
-  reg load = 0;  
   reg clk =0;
   
   wire out;
@@ -13,18 +12,15 @@ module top;
     $dumpfile("testdff.vcd");
     $dumpvars(0,top);
     #15
-    load=1;
+    in=0;
     #15
-    load=0;    
+    in=1;    
     #15
     in = 0;
     #15
-    load=1;
-    #15
-    load=0;
+    in=1;
     #15 $finish;
     end   
       
-      // clk,in,load,out
-  dff mydf(clk,in,load,out);
+  dff mydf(in,clk,out);
 endmodule

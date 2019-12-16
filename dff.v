@@ -1,14 +1,9 @@
-module dff(
-input clk, 
+module dff( 
 input in, 
-input load, 
+input clk,
 output reg out);
 
-always @ (posedge load)
-begin
-
-if (load)
+always @ (posedge clk)
   out <= in;
-end
 
 endmodule
