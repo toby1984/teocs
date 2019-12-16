@@ -1,19 +1,10 @@
 module demux(
-  input in,sel,
-  output out0,out1
-);
-always(@in or sel)
-begin
-  case(sel)
-    2'b0: 
-    begin
-      out0 = in;
-      out1 = 0;
-    end
-    2'b1:
-    begin
-      out0 = 0;
-      out1 = 1;
-    end    
-end
+   input in, 
+   input sel,
+   output [1:0] out    
+   );
+
+assign out[0] = ~sel & in;
+assign out[1] =  sel & in;
+
 endmodule
