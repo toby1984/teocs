@@ -7,7 +7,7 @@ output reg out);
 initial 
   out=0;
 
-  always @(posedge clk and posedge load)
+  always @(load and posedge clk)
   begin
     out <= in;
   end
