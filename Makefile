@@ -1,30 +1,25 @@
-CC=iverilog
-CFLAGS=-I.
-TOTEST=testreg
+TOTEST=reg/testreg.o
 
-run: clean testmux.o testdemux.o testdff.o testmux4way16.o testprimitives.o testreg.o
-	vvp $(TOTEST).o
-	gtkwave $(TOTEST).vcd
+MAKE_DIR = $(PWD)
+PRIM_DIR     := $(MAKE_DIR)/primitives
+REG_DIR     := $(MAKE_DIR)/reg
+MUX_DIR     := $(MAKE_DIR)/mux
+DEMUX_DIR     := $(MAKE_DIR)/demux
 
-testreg.o: mux.v dff.v reg.v reg8.v reg16.v testreg.v
-	iverilog -o testreg.o mux.v dff.v reg.v reg8.v reg16.v testreg.v
+INC_SRCH_PATH := 
+INC_SRCH_PATH += -I$(PRIM_DIR)
+INC_SRCH_PATH += -I$(REG_DIR) 
+INC_SRCH_PATH += -I$(MUX_DIR)
+INC_SRCH_PATH += -I$(DEMUX_DIR)
 
-testprimitives.o: or.v my_and.v xor.v nand.v not.v testprimitives.v and16.v or16.v not16.v
-	iverilog -o testprimitives.o or.v my_and.v xor.v nand.v not.v and16.v or16.v not16.v testprimitives.v
-
-testmux4way16.o: mux16.v  mux2way16.v  mux4.v  mux4way16.v  mux8.v  mux.v  testmux4way16.v 
-	iverilog -o testmux4way16.o -Wall mux16.v  mux2way16.v  mux4.v  mux4way16.v  mux8.v  mux.v  testmux4way16.v
-
-testdff.o: dff.v testdff.v
-	iverilog -o testdff.o -Wall dff.v testdff.v
-
-testmux.o: mux.v mux4.v mux8.v mux16.v testmux.v
-	iverilog -o testmux.o -Wall mux.v mux4.v mux8.v mux16.v testmux.v
-
-testdemux.o: demux.v demux4.v demux8.v demux16.v testdemux.v
-	iverilog -o testdemux.o -Wall demux.v demux4.v demux8.v demux16.v testdemux.v
+all: clean
+	@$(MAKE) -C $(PRIM_DIR) -f make.mk
+	@$(MAKE) -C $(REG_DIR) -f make.mk
+	@$(MAKE) -C $(MUX_DIR) -f make.mk
+	@$(MAKE) -C $(DEMUX_DIR) -f make.mk
 
 .PHONY: clean
 
 clean:
-	rm -f *.o *.vcd
+	rm -f $(PRIM_DIR)/*.o $(REG_DIR)/*.o $(MUX_DIR)/*.o $(DEMUX_DIR)/*.o
+	rm -f $(PRIM_DIR)/*.vcd $(REG_DIR)/*.vcd $(MUX_DIR)/*.vcd $(DEMUX_DIR)/*.vcd
