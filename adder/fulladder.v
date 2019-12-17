@@ -1,7 +1,7 @@
 module fulladder(
   input a,
   input b,
-  input carryin
+  input carryin,
   output carryout,
   output out);
   
@@ -15,7 +15,7 @@ module fulladder(
   and2 myand2(a,carryin,tmp2);  
   and2 myand3(b,carryin,tmp3);    
   
-  or2 myor3(tmp1,tmp2,tmp4)
+  or2 myor3(tmp1,tmp2,tmp4);
   or2 myor4(tmp3,tmp4,carryout);
   
 endmodule
