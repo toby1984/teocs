@@ -2,21 +2,8 @@ module top;
   reg [2:0] adr;
   reg [15:0] data;
   reg load=0;
-  reg clk;
   wire [15:0] out;
-  
-  always
-    #1 clk = ~clk;
-    
-    
-    //
-// module ram8(
-// input [2:0] adr,
-// input [15:0] data,
-// input clk,
-// input load,
-// output [15:0] out);    
-    //
+      
   initial
     begin
     $dumpfile("testram.vcd");
@@ -27,10 +14,19 @@ module top;
     load=1;    
     #2
     load=0;
-    #5
+    #2
+    adr = 3'b001;
+    data = 16'h5678;
+    #1
+    load=1;
+    #1 
+    load=0;
+    #1
+    adr= 3'b000;
+    #2    
     $finish;
     end   
       
-  ram8 myreg(adr,data,clk,load,out);
+  ram8 myreg(adr,data,load,out);
 
 endmodule
