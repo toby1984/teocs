@@ -13,11 +13,13 @@ module top;
     $dumpvars(0,top);
     data = 15'h5555;
     #5
+    load=1;    
+    #1
+    load=0;
     data = 15'h3333;
     #1
     load=1;
-    #1
-    load=0;
+    #15
     $finish;
     end   
       

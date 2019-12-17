@@ -7,9 +7,10 @@ output reg out);
 initial 
   out=0;
 
-  always @(load and posedge clk)
+  always @(posedge clk or posedge load)
   begin
-    out <= in;
+    if ( load )
+      out <= in; 
   end
 
 endmodule

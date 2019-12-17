@@ -1,16 +1,21 @@
-TOTEST=reg/testreg.o
+TESTDIR=mux
+TOTEST=testmux8way16
 
-MAKE_DIR = $(PWD)
-PRIM_DIR     := $(MAKE_DIR)/primitives
-REG_DIR     := $(MAKE_DIR)/reg
-MUX_DIR     := $(MAKE_DIR)/mux
-DEMUX_DIR     := $(MAKE_DIR)/demux
+MAKE_DIR   = $(PWD)
+PRIM_DIR  := $(MAKE_DIR)/primitives
+REG_DIR   := $(MAKE_DIR)/reg
+MUX_DIR   := $(MAKE_DIR)/mux
+DEMUX_DIR := $(MAKE_DIR)/demux
 
 INC_SRCH_PATH := 
 INC_SRCH_PATH += -I$(PRIM_DIR)
 INC_SRCH_PATH += -I$(REG_DIR) 
 INC_SRCH_PATH += -I$(MUX_DIR)
 INC_SRCH_PATH += -I$(DEMUX_DIR)
+
+test: all
+	vvp $(TESTDIR)/$(TOTEST).o
+	gtkwave $(TOTEST).vcd
 
 all: clean
 	@$(MAKE) -C $(PRIM_DIR) -f make.mk
