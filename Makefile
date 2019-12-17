@@ -9,8 +9,8 @@ run: clean testmux.o testdemux.o testdff.o testmux4way16.o testprimitives.o test
 testreg.o: mux.v dff.v reg.v reg8.v reg16.v testreg.v
 	iverilog -o testreg.o mux.v dff.v reg.v reg8.v reg16.v testreg.v
 
-testprimitives.o: or.v and.v xor.v nand.v not.v testprimitives.v and16.v or16.v not16.v
-	iverilog -o testprimitives.o or.v and.v xor.v nand.v not.v and16.v or16.v not16.v testprimitives.v
+testprimitives.o: or.v my_and.v xor.v nand.v not.v testprimitives.v and16.v or16.v not16.v
+	iverilog -o testprimitives.o or.v my_and.v xor.v nand.v not.v and16.v or16.v not16.v testprimitives.v
 
 testmux4way16.o: mux16.v  mux2way16.v  mux4.v  mux4way16.v  mux8.v  mux.v  testmux4way16.v 
 	iverilog -o testmux4way16.o -Wall mux16.v  mux2way16.v  mux4.v  mux4way16.v  mux8.v  mux.v  testmux4way16.v
