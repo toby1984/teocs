@@ -1,5 +1,5 @@
-TESTDIR=mux
-TOTEST=testmux8way16
+TESTDIR=adder
+TOTEST=testadder
 
 MAKE_DIR   = $(PWD)
 PRIM_DIR  := $(MAKE_DIR)/primitives
