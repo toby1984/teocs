@@ -2,15 +2,11 @@ module reg2(
 input in, 
 input clk,
 input load,
-output reg out);
+output out);
 
-initial 
-  out=0;
-
-  always @(posedge clk or posedge load)
-  begin
-    if ( load )
-      out <= in; 
-  end
+  wire muxout;
+  
+  mux mymux({in,out},load,muxout);
+  dff mydff(muxout,clk,out);
 
 endmodule

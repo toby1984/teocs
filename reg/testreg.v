@@ -17,7 +17,7 @@ module top;
     #1
     load=0;
     data = 15'h3333;
-    #1
+    #5
     load=1;
     #15
     $finish;

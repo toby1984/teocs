@@ -4,7 +4,7 @@ module adder(
   output carry,
   output out);
   
-  or2 myor(a,b,out);
+  xor2 myxor(a,b,out);
   and2 myand(a,b,carry);
   
 endmodule
