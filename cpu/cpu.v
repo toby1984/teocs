@@ -21,26 +21,26 @@ always @ (posedge clk)
     // reset
     if ( reset )
     begin
-        regA = 0;
-        regD = 0;
+        regA <= 0;
+        regD <= 0;
         result = 0;
-        pc = 0;
-        memOut = 16'bzzzzzzzzzzzzzzzz;
-        memAddress = 16'bzzzzzzzzzzzzzzzz;
-        writeM = 0;    
-        not_implemented = 0;
+        pc <= 0;
+        memOut <= 16'bzzzzzzzzzzzzzzzz;
+        memAddress <= 16'bzzzzzzzzzzzzzzzz;
+        writeM <= 0;    
+        not_implemented <= 0;
     end else begin
 
         // check whether A or C instruction
         if ( instruction[15] == 0 )
         begin
             // A instruction
-            regA = instruction & 16'b0111111111111111;   
-            pc = pc + 1;          
+            regA <= instruction & 16'b0111111111111111;   
+            pc <= pc + 1;          
             
-            memOut = 16'bzzzzzzzzzzzzzzzz;
-            memAddress = 16'bzzzzzzzzzzzzzzzz;
-            writeM = 0;               
+            memOut <= 16'bzzzzzzzzzzzzzzzz;
+            memAddress <= 16'bzzzzzzzzzzzzzzzz;
+            writeM <= 0;               
         end
         else begin
     
@@ -82,79 +82,79 @@ always @ (posedge clk)
             // store result
             case ( ( instruction & 16'b111000) >> 3 ) 
                 3'b001: begin // mem[a] 
-                    memOut = result;
-                    memAddress = regA;
-                    writeM = 1;
+                    memOut <= result;
+                    memAddress <= regA;
+                    writeM <= 1;
                 end
-                3'b010: regD = result; // D register
+                3'b010: regD <= result; // D register
                 3'b011: begin // mem[a] and D register
-                    memOut = result;
-                    memAddress = regA;
-                    writeM = 1;
-                    regD = result;
+                    memOut <= result;
+                    memAddress <= regA;
+                    writeM <= 1;
+                    regD <= result;
                 end
-                3'b100: regA = result; // A register
+                3'b100: regA <= result; // A register
                 3'b101: begin; // A register and mem[a]
-                    memOut = result;
-                    memAddress = regA;
-                    writeM = 1;
-                    regA = result;
+                    memOut <= result;
+                    memAddress <= regA;
+                    writeM <= 1;
+                    regA <= result;
                 end
                 3'b110: begin // A register and D register
-                    regA = result;
-                    regD = result;
+                    regA <= result;
+                    regD <= result;
                 end
                 3'b111: begin
-                    memOut = result;
-                    memAddress = regA;
-                    writeM = 1;
-                    regA = result;
-                    regD = result;
+                    memOut <= result;
+                    memAddress <= regA;
+                    writeM <= 1;
+                    regA <= result;
+                    regD <= result;
                 end
                 default: begin
-                    memOut = 16'bzzzzzzzzzzzzzzzz;
-                    memAddress = 16'bzzzzzzzzzzzzzzzz;
-                    writeM = 0;            
+                    memOut <= 16'bzzzzzzzzzzzzzzzz;
+                    memAddress <= 16'bzzzzzzzzzzzzzzzz;
+                    writeM <= 0;            
                 end
             endcase
             
             // handle jump instructions
             case( instruction & 3'b111 )
                 3'b000: begin
-                    pc = pc + 1;
+                    pc <= pc + 1;
                 end
                 3'b001: 
                     if ( result > 0 )
-                        pc = regA;
+                        pc <= regA;
                     else
-                        pc = pc + 1;
+                        pc <= pc + 1;
                 3'b010:
                     if ( result == 0 )
-                        pc = regA;      
+                        pc <= regA;      
                     else
-                        pc = pc + 1;                        
+                        pc <= pc + 1;                        
                 3'b011:
                     if ( result >= 0 )
-                        pc = regA;    
+                        pc <= regA;    
                     else
-                        pc = pc + 1;                        
+                        pc <= pc + 1;                        
                 3'b100:
                     if ( result < 0 )
-                        pc = regA;  
+                        pc <= regA;  
                     else
-                        pc = pc + 1;                        
+                        pc <= pc + 1;                        
                 3'b101: 
                     if ( result != 0 )
-                        pc = regA;         
+                        pc <= regA;         
                     else
-                        pc = pc + 1;                        
+                        pc <= pc + 1;                        
                 3'b110:
                     if ( result <= 0 )
-                        pc = regA;                 
+                        pc <= regA;                 
                     else
-                        pc = pc + 1;                        
+                        pc <= pc + 1;                        
                 3'b111:
-                    pc = regA;                
+                    pc <= regA;                
             endcase        
         
         end // if ( instruction[15] == 0 )
