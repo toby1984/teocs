@@ -1,5 +1,5 @@
-TESTDIR=counter
-TOTEST=testcounter
+TESTDIR=cpu
+TOTEST=testcpu
 
 MAKE_DIR   = $(PWD)
 PRIM_DIR  := $(MAKE_DIR)/primitives
@@ -9,6 +9,8 @@ DEMUX_DIR := $(MAKE_DIR)/demux
 ADDER_DIR := $(MAKE_DIR)/adder
 RAM_DIR   := $(MAKE_DIR)/ram
 COUNTER_DIR   := $(MAKE_DIR)/counter
+ALU_DIR   := $(MAKE_DIR)/alu
+CPU_DIR   := $(MAKE_DIR)/cpu
 
 INC_SRCH_PATH := 
 INC_SRCH_PATH += -I$(PRIM_DIR)
@@ -28,9 +30,11 @@ all: clean
 	@$(MAKE) -C $(ADDER_DIR) -f make.mk
 	@$(MAKE) -C $(RAM_DIR) -f make.mk
 	@$(MAKE) -C $(COUNTER_DIR) -f make.mk
+	@$(MAKE) -C $(ALU_DIR) -f make.mk
+	@$(MAKE) -C $(CPU_DIR) -f make.mk
 
 .PHONY: clean
 
 clean:
-	rm -f $(PRIM_DIR)/*.o $(REG_DIR)/*.o $(MUX_DIR)/*.o $(DEMUX_DIR)/*.o $(ADDER_DIR)/*.o $(RAM_DIR)/*.o $(COUNTER_DIR)/*.o
+	rm -f $(PRIM_DIR)/*.o $(REG_DIR)/*.o $(MUX_DIR)/*.o $(DEMUX_DIR)/*.o $(ADDER_DIR)/*.o $(RAM_DIR)/*.o $(COUNTER_DIR)/*.o $(ALU_DIR)/*.o $(CPU_DIR)/*.o
 	rm -f *.vcd 
