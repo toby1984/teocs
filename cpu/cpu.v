@@ -47,7 +47,7 @@ always @ (posedge clk)
             // C instruction    
             
             // perform operation
-            case( ( instruction & 16'b0000111111000000) >> 6 ) 
+            case( instruction[12:6] ) 
                 7'b0101010: result = 0;
                 7'b0111111: result = 1;
                 7'b0111111: result = -1;
@@ -80,7 +80,7 @@ always @ (posedge clk)
             endcase
                             
             // store result
-            case ( ( instruction & 16'b111000) >> 3 ) 
+            case ( instruction[5:3] ) 
                 3'b001: begin // mem[a] 
                     memOut <= result;
                     memAddress <= regA;
@@ -119,7 +119,7 @@ always @ (posedge clk)
             endcase
             
             // handle jump instructions
-            case( instruction & 3'b111 )
+            case( instruction[2:0] )
                 3'b000: begin
                     pc <= pc + 1;
                 end
