@@ -1,13 +1,10 @@
 package de.codesourcery.hack.asm.parser;
 
-import de.codesourcery.hack.asm.parser.ast.AST;
-import de.codesourcery.hack.asm.parser.ast.CommentNode;
-import de.codesourcery.hack.asm.parser.ast.InstructionNode;
-import de.codesourcery.hack.asm.parser.ast.LabelNode;
-import de.codesourcery.hack.asm.parser.ast.NumberNode;
-import de.codesourcery.hack.asm.parser.ast.RegisterNode;
-import de.codesourcery.hack.asm.parser.ast.StatementNode;
+import de.codesourcery.hack.asm.Jump;
+import de.codesourcery.hack.asm.parser.ast.*;
 import org.junit.Test;
+
+import java.util.List;
 
 import static org.junit.Assert.*;
 
@@ -29,14 +26,14 @@ public class ParserTest
     @Test
     public void parseCommentLine()
     {
-        final AST ast = parse("; this is a comment" );
+        final AST ast = parse("# this is a comment" );
         assertNotNull(ast);
         assertTrue( ast.hasChildren() );
         assertTrue( ast.child(0) instanceof StatementNode );
         StatementNode stmt = (StatementNode) ast.child( 0);
         assertTrue( stmt.hasChildren() );
         assertTrue( stmt.child(0) instanceof CommentNode );
-        assertEquals( "; this is a comment" , ((CommentNode) stmt.firstChild()).value );
+        assertEquals( "# this is a comment" , ((CommentNode) stmt.firstChild()).value );
     }
 
     @Test
@@ -64,7 +61,7 @@ public class ParserTest
     @Test
     public void parseLabelLineWithComment()
     {
-        final AST ast = parse("label: ; this is a comment" );
+        final AST ast = parse("label: # this is a comment" );
         assertNotNull(ast);
         assertTrue( ast.hasChildren() );
         assertTrue( ast.child(0) instanceof StatementNode );
@@ -84,13 +81,13 @@ public class ParserTest
 
         // check comment
         assertTrue( stmt.child(1) instanceof CommentNode );
-        assertEquals( "; this is a comment" , ((CommentNode) stmt.child(1)).value );
+        assertEquals( "# this is a comment" , ((CommentNode) stmt.child(1)).value );
     }
 
     @Test
     public void parseLabelLineWithCommentAndInstruction()
     {
-        final AST ast = parse("label: move 42 , a ; this is a comment" );
+        final AST ast = parse("label: @42 # this is a comment" );
         assertNotNull(ast);
         assertTrue( ast.hasChildren() );
         assertTrue( ast.child(0) instanceof StatementNode );
@@ -111,20 +108,48 @@ public class ParserTest
         // check instruction
         assertTrue( stmt.child(1) instanceof InstructionNode );
         final InstructionNode insn = (InstructionNode) stmt.child( 1 );
-        assertEquals( Instruction.MOVE , insn.insn );
-        assertEquals( 2 , insn.childCount() );
+        assertTrue( insn.isLoadA );
 
         // source
         assertTrue( insn.child(0) instanceof NumberNode );
         assertEquals( 42 , ((NumberNode) insn.child(0)).value() );
 
-        // destination
-        assertTrue( insn.child(1) instanceof RegisterNode );
-        assertEquals( RegisterNode.Register.A , ((RegisterNode) insn.child(1)).register );
-
         // check comment
         assertTrue( stmt.child(2) instanceof CommentNode );
-        assertEquals( "; this is a comment" , ((CommentNode) stmt.child(2)).value );
+        assertEquals( "# this is a comment" , ((CommentNode) stmt.child(2)).value );
+    }
+
+    @Test
+    public void parseFunkyInstruction()
+    {
+        final AST ast = parse("amd=d&m;jmp");
+        assertNotNull(ast);
+        assertTrue(ast.hasChildren());
+        assertTrue(ast.child(0) instanceof StatementNode);
+        StatementNode stmt = (StatementNode) ast.child(0);
+        assertTrue(stmt.hasChildren());
+        assertTrue(stmt.child(0) instanceof InstructionNode);
+
+        final InstructionNode insn = (InstructionNode) stmt.firstChild();
+        assertFalse( insn.isLoadA );
+
+        final List<ASTNode> operators = insn.findAll(x -> x instanceof OperatorNode );
+        assertEquals(2, operators.size() );
+        assertTrue(operators.stream().anyMatch(x -> x instanceof OperatorNode && ((OperatorNode) x).operator == Operator.ASSIGNMENT));
+        assertTrue(operators.stream().anyMatch(x -> x instanceof OperatorNode && ((OperatorNode) x).operator == Operator.BITWISE_AND));
+
+        final ASTNode assignment = insn.findFirst(x -> x instanceof OperatorNode && ((OperatorNode) x).operator == Operator.ASSIGNMENT );
+        assertNotNull(assignment);
+        assertEquals( Identifier.of("amd"), ((IdentifierNode) assignment.lhs()).name );
+
+        final ASTNode and = insn.findFirst(x -> x instanceof OperatorNode && ((OperatorNode) x).operator == Operator.BITWISE_AND);
+        assertNotNull(assignment);
+        assertEquals( Identifier.of("d"), ((IdentifierNode) and.lhs()).name );
+        assertEquals( Identifier.of("m"), ((IdentifierNode) and.rhs()).name );
+
+        final ASTNode jmp = insn.findFirst(x -> x instanceof JumpNode);
+        assertNotNull(jmp);
+        assertEquals( Jump.UNCONDITIONAL, ((JumpNode) jmp).jump );
     }
 
     private AST parse(String s) {

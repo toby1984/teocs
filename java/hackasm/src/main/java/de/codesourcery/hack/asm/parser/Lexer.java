@@ -98,14 +98,16 @@ public class Lexer
                     parseBuffer(start);
                     tokens.add( new Token( scanner.next() , TokenType.SEMICOLON, scanner.location() ) );
                     return;
-                case '/':
-                    parseBuffer(start);
-                    tokens.add( new Token( scanner.next() , TokenType.SLASH, scanner.location() ) );
-                    return;
                 case '@':
                     parseBuffer(start);
                     tokens.add( new Token( scanner.next() , TokenType.AT, scanner.location() ) );
                     return;
+            }
+            final Operator op = Operator.parseOperator(c );
+            if ( op != null ) {
+                parseBuffer(start);
+                tokens.add( new Token( scanner.next() , TokenType.OPERATOR, scanner.location() ) );
+                return;
             }
             buffer.append( scanner.next() );
         }
@@ -124,10 +126,6 @@ public class Lexer
 
         if ( NumberNode.isValidNumber( value ) ) {
             tokens.add( new Token( value, TokenType.NUMBER, start ) );
-        }
-        else if ( Instruction.isValid( value ) )
-        {
-            tokens.add( new Token( value, TokenType.INSTRUCTION, start ) );
         }
         else if ( Identifier.isValidIdentifier( value ) )
         {

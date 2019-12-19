@@ -1,14 +1,10 @@
 package de.codesourcery.hack.asm.parser;
 
-import de.codesourcery.hack.asm.parser.ast.AST;
-import de.codesourcery.hack.asm.parser.ast.ASTNode;
-import de.codesourcery.hack.asm.parser.ast.CommentNode;
-import de.codesourcery.hack.asm.parser.ast.IdentifierNode;
-import de.codesourcery.hack.asm.parser.ast.InstructionNode;
-import de.codesourcery.hack.asm.parser.ast.LabelNode;
-import de.codesourcery.hack.asm.parser.ast.NumberNode;
-import de.codesourcery.hack.asm.parser.ast.RegisterNode;
-import de.codesourcery.hack.asm.parser.ast.StatementNode;
+import de.codesourcery.hack.asm.Jump;
+import de.codesourcery.hack.asm.parser.ast.*;
+
+import java.util.Collections;
+import java.util.Stack;
 
 public class Parser
 {
@@ -99,39 +95,33 @@ public class Parser
     private ASTNode parseInstruction()
     {
         InstructionNode result = null;
-        if ( token.is(TokenType.INSTRUCTION) )
-        {
-            Instruction insn = Instruction.parse( token.value );
-            result = new InstructionNode(insn,token.region());
+        ASTNode expr;
+        if ( token.is(TokenType.AT ) ) {
             consumeToken();
-
-            // parse source arguments
-            for (int i = 0; i < insn.srcOpCount; i++ )
-            {
-                ASTNode expr = parseExpression();
-                if ( expr == null ) {
-                    fail("Instruction "+insn+" requires "+insn.srcOpCount +" arguments, expected an expression");
-                }
-                result.add( expr );
-                if ( (i+1) < insn.srcOpCount ) {
-                    if ( ! token.is(TokenType.COMMA ) ) {
-                        fail("Instruction "+insn+" requires "+insn.srcOpCount +" arguments, missing ','");
-                    }
-                    consumeToken();
-                }
+            result = new InstructionNode(true);
+            expr = parseExpression();
+            if ( expr == null ) {
+                fail("Expected value to assign to register A");
             }
-            // parse destination arguments (if any)
-            while ( true )
-            {
-                if ( ! token.is(TokenType.COMMA ) ) {
-                    break;
-                }
+            result.add( expr );
+            return result;
+        }
+        expr = parseExpression();
+        if ( expr != null ) {
+            result = new InstructionNode(false);
+            result.add( expr );
+            if ( token.is(TokenType.SEMICOLON ) ) {
+                // parse destination
                 consumeToken();
-                ASTNode dest = parseExpression();
-                if ( dest == null ) {
-                    fail("Expected an instruction argument");
+                if ( ! token.is(TokenType.IDENTIFIER ) ) {
+                    fail("Expected a JUMP specification");
                 }
-                result.add( dest );
+                Jump jump = Jump.of(token.value);
+                if ( jump == null ) {
+                    fail("Expected a JUMP specification");
+                }
+                result.add( new JumpNode(jump, token.region() ) );
+                consumeToken();
             }
         }
         return result;
@@ -139,12 +129,78 @@ public class Parser
 
     private ASTNode parseExpression()
     {
-        // TODO: Implement proper expression parsing that also supports operators & operator precedence
-        ASTNode result = parseNumber();
-        if ( result != null ) {
-            return result;
+        final Stack<ASTNode> valueStack = new Stack<>();
+        final Stack<OperatorNode> opStack = new Stack<>();
+
+        boolean sawOperator = true;
+
+        while ( true )
+        {
+            if (token.is(TokenType.OPERATOR))
+            {
+                Operator op = Operator.parseOperator(token.value.charAt(0));
+                if ( sawOperator && op == Operator.MINUS ) { // this is actually an unary minus
+                    op = Operator.UNARY_MINUS;
+                }
+                final OperatorNode node = new OperatorNode(op, token.region() );
+
+                consumeToken();
+
+                while ( ! opStack.isEmpty() && mustPop(node,opStack ) ) {
+                    popOperator(opStack,valueStack);
+                }
+                opStack.push(node);
+                sawOperator = true;
+            }
+            else
+            {
+                final ASTNode atom = parseAtom();
+                if ( atom == null ) {
+                    break;
+                }
+                sawOperator = false;
+                valueStack.push(atom);
+            }
         }
-        result = parseRegister();
+        while ( ! opStack.isEmpty() )
+        {
+            popOperator(opStack, valueStack );
+        }
+        if ( valueStack.isEmpty() ) {
+            return null;
+        }
+        if ( valueStack.size() > 1 ) {
+            fail("Extra values?");
+        }
+        return valueStack.peek();
+    }
+
+    private void popOperator(Stack<OperatorNode> opStack, Stack<ASTNode> valueStack)
+    {
+        OperatorNode op = opStack.pop();
+        if ( valueStack.size() < op.operator.argumentCount ) {
+            fail("Too few arguments for '"+op.operator.literal+"', expected "+op.operator.argumentCount+" but got only "+valueStack.size());
+        }
+        for ( int i = 0 ; i < op.operator.argumentCount ; i++ ) {
+            op.add( valueStack.pop() );
+        }
+        Collections.reverse(op.children() );
+        valueStack.push( op );
+    }
+
+    private boolean mustPop(OperatorNode current, Stack<OperatorNode> opStack) {
+        /*
+        while (  (there is an operator at the top of the operator stack with greater precedence)
+               or (the operator at the top of the operator stack has equal precedence and is left associative))
+            pop operators from the operator stack onto the output queue.
+         */
+        final Operator top = opStack.peek().operator;
+        return top.precedence > current.operator.precedence || ( top.precedence == current.operator.precedence && top.isLeftAssociative);
+    }
+
+    private ASTNode parseAtom()
+    {
+        ASTNode result = parseNumber();
         if ( result != null ) {
             return result;
         }
@@ -153,17 +209,6 @@ public class Parser
             return result;
         }
         return null;
-    }
-
-    private ASTNode parseRegister()
-    {
-        RegisterNode result = null;
-        if ( token.is(TokenType.IDENTIFIER) && RegisterNode.isValidRegister( token.value) )
-        {
-            result = new RegisterNode( token.value, token.region() );
-            consumeToken();
-        }
-        return result;
     }
 
     private ASTNode parseNumber()
@@ -207,7 +252,7 @@ public class Parser
     private ASTNode parseComment()
     {
         ASTNode result = null;
-        if ( token.is(TokenType.SEMICOLON) )
+        if ( token.is(TokenType.HASH) )
         {
             buffer.setLength( 0 );
             Token start = token;

@@ -3,6 +3,7 @@ package de.codesourcery.hack.asm.parser.ast;
 import de.codesourcery.hack.asm.parser.TextRegion;
 
 import java.util.List;
+import java.util.function.Predicate;
 
 public interface IASTNode
 {
@@ -52,6 +53,11 @@ public interface IASTNode
         return child(1);
     }
 
+    List<ASTNode> findAll(Predicate<ASTNode> predicate);
+
+    void findAll(Predicate<ASTNode> predicate, List<ASTNode> result);
+
+    ASTNode findFirst(Predicate<ASTNode> predicate);
 
     interface IterationVisitor<T> {
         void visit(ASTNode node, IterationContext<T> ctx);
@@ -63,16 +69,16 @@ public interface IASTNode
         boolean dontGoDeeper;
         T value;
 
-        void stop() {
+        public void stop() {
             this.stop = true;
         }
 
-        void stop(T obj) {
+        public void stop(T obj) {
             this.stop = true;
             this.value = obj;
         }
 
-        void dontGoDeeper() {
+        public void dontGoDeeper() {
             dontGoDeeper = true;
         }
     }
@@ -81,4 +87,12 @@ public interface IASTNode
 
     // NOT PART OF PUBLIC API
     <T> void visit(IterationVisitor<T> visitor, IterationContext<T> ctx);
+
+    default boolean isOperator() {
+        return this instanceof OperatorNode;
+    }
+
+    default boolean isJump() {
+        return this instanceof JumpNode;
+    }
 }

@@ -8,12 +8,11 @@ public enum TokenType
     NUMBER,
     COMMA,
     SEMICOLON,
-    HASH,
-    SLASH,
+    OPERATOR,
+    HASH, // starts comments
     DOT,
     EOF,
     NEWLINE,
     WHITESPACE,
-    IDENTIFIER,
-    INSTRUCTION
+    IDENTIFIER
 }
