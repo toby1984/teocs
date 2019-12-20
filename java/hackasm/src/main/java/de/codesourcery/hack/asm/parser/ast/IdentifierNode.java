@@ -26,4 +26,10 @@ public class IdentifierNode extends ASTNode implements ILiteralValueNode
         }
         return ((Number) symbol.value()).intValue();
     }
+
+    @Override
+    public String toString()
+    {
+        return "identifier: '"+name.value+"'";
+    }
 }

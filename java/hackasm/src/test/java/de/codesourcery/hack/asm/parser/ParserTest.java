@@ -120,6 +120,21 @@ public class ParserTest
     }
 
     @Test
+    public void parseWordDirective()
+    {
+        final AST ast = parse( ".word 0x1234" );
+        assertNotNull( ast );
+        assertTrue( ast.hasChildren() );
+        assertTrue( ast.child( 0 ) instanceof StatementNode );
+        StatementNode stmt = (StatementNode) ast.child( 0 );
+        assertTrue( stmt.hasChildren() );
+        assertTrue( stmt.child( 0 ) instanceof DirectiveNode );
+
+        final DirectiveNode insn = (DirectiveNode) stmt.firstChild();
+        assertEquals( DirectiveNode.Directive.WORD, insn.directive );
+    }
+
+    @Test
     public void parseFunkyInstruction()
     {
         final AST ast = parse("amd=d&m;jmp");

@@ -15,6 +15,8 @@ public interface IASTNode
 
     void add(ASTNode child);
 
+    void addAll(List<ASTNode> child);
+
     void setParent(ASTNode node);
 
     default int childCount() {
@@ -90,6 +92,10 @@ public interface IASTNode
 
     default boolean isOperator() {
         return this instanceof OperatorNode;
+    }
+
+    default boolean isNumberLiteral() {
+        return this instanceof NumberNode;
     }
 
     default boolean isJump() {

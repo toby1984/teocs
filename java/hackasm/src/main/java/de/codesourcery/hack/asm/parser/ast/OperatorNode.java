@@ -14,4 +14,10 @@ public class OperatorNode extends ASTNode
         Validate.notNull( operator, "operator must not be null" );
         this.operator = operator;
     }
+
+    @Override
+    public String toString()
+    {
+        return "operator: '"+operator.literal+"'";
+    }
 }

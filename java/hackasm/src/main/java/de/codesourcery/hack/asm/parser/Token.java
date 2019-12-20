@@ -38,4 +38,11 @@ public class Token
     public boolean isNewline() {
         return is(TokenType.NEWLINE);
     }
+
+    @Override
+    public String toString()
+    {
+        String s = is(TokenType.NEWLINE) ? "<newline>" : is(TokenType.WHITESPACE) ? "<whitespace>" : "'"+value+"'";
+        return type + " @ "+location + " : "+s;
+    }
 }

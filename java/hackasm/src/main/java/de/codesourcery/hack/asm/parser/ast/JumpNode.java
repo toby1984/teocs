@@ -14,4 +14,10 @@ public class JumpNode extends ASTNode
         Validate.notNull(jump, "jump must not be null");
         this.jump = jump;
     }
+
+    @Override
+    public String toString()
+    {
+        return "jump: "+jump;
+    }
 }

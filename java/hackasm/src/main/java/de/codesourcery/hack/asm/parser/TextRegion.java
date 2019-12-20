@@ -36,10 +36,16 @@ public class TextRegion
         return end.offset;
     }
 
-    public void merge(TextRegion other) {
+    /**
+     *
+     * @param other
+     * @return <code>this</code> instance (for chaining)
+     */
+    public TextRegion merge(TextRegion other) {
         final Location newStart = this.start.offset < other.start.offset ? this.start : other.start;
         final Location newEnd   = this.end.offset > other.end.offset ? this.end : other.end;
         this.start = newStart;
         this.end = newEnd;
+        return this;
     }
 }

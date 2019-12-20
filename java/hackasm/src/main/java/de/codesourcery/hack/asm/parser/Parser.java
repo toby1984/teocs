@@ -1,9 +1,21 @@
 package de.codesourcery.hack.asm.parser;
 
 import de.codesourcery.hack.asm.Jump;
-import de.codesourcery.hack.asm.parser.ast.*;
+import de.codesourcery.hack.asm.parser.ast.AST;
+import de.codesourcery.hack.asm.parser.ast.ASTNode;
+import de.codesourcery.hack.asm.parser.ast.CommentNode;
+import de.codesourcery.hack.asm.parser.ast.DirectiveNode;
+import de.codesourcery.hack.asm.parser.ast.IdentifierNode;
+import de.codesourcery.hack.asm.parser.ast.InstructionNode;
+import de.codesourcery.hack.asm.parser.ast.JumpNode;
+import de.codesourcery.hack.asm.parser.ast.LabelNode;
+import de.codesourcery.hack.asm.parser.ast.NumberNode;
+import de.codesourcery.hack.asm.parser.ast.OperatorNode;
+import de.codesourcery.hack.asm.parser.ast.StatementNode;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Stack;
 
 public class Parser
@@ -92,8 +104,57 @@ public class Parser
         throw new RuntimeException( message+" @ "+token.location );
     }
 
+    private List<ASTNode> parseExpressionList(boolean atLeastOneExpected)
+    {
+        final List<ASTNode> result = new ArrayList<>();
+        while ( ! ( token.isEOF() || token.isNewline() ) )
+        {
+            final ASTNode expr = parseExpression();
+            if ( expr == null )
+            {
+                if ( atLeastOneExpected ) {
+                    fail("Expected an expression");
+                }
+                break;
+            }
+            result.add( expr );
+            if ( token.is(TokenType.COMMA ) ) {
+                consumeToken();
+                atLeastOneExpected = true;
+            } else {
+                atLeastOneExpected = false;
+            }
+        }
+        return result;
+    }
+
+    private ASTNode parseDirective()
+    {
+        ASTNode result = null;
+        if ( token.is(TokenType.DOT ) )
+        {
+            final TextRegion start = token.region();
+            consumeToken();
+            if ( ! token.is( TokenType.IDENTIFIER ) ) {
+                fail("Expected a directive");
+            }
+            DirectiveNode.Directive d = DirectiveNode.Directive.of( token.value );
+            if ( d == null ) {
+                fail("Unknown directive ."+token.value);
+            }
+            result = new DirectiveNode( d, start.merge( token.region() ) );
+            consumeToken();
+            result.addAll( parseExpressionList(true) );
+        }
+        return result;
+    }
+
     private ASTNode parseInstruction()
     {
+        ASTNode directive = parseDirective();
+        if ( directive != null ) {
+            return directive;
+        }
         InstructionNode result = null;
         ASTNode expr;
         if ( token.is(TokenType.AT ) ) {

@@ -29,4 +29,10 @@ public class LabelNode extends ASTNode implements ILiteralValueNode
         }
         return ((Number) symbol.value()).intValue();
     }
+
+    @Override
+    public String toString()
+    {
+        return "label: '"+name.value+"'";
+    }
 }

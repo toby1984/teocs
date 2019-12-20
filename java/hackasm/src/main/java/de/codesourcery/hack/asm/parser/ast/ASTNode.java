@@ -5,7 +5,6 @@ import org.apache.commons.lang3.Validate;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 public abstract class ASTNode implements IASTNode
@@ -27,6 +26,16 @@ public abstract class ASTNode implements IASTNode
         Validate.notNull( child, "child must not be null" );
         this.children.add(child);
         child.setParent(this);
+    }
+
+    @Override
+    public void addAll(List<ASTNode> children)
+    {
+        Validate.notNull( children, "child must not be null" );
+        for ( ASTNode child : children )
+        {
+            add(child);
+        }
     }
 
     @Override
@@ -121,5 +130,11 @@ public abstract class ASTNode implements IASTNode
             }
         }
         ctx.dontGoDeeper = false;
+    }
+
+    @Override
+    public String toString()
+    {
+        return getClass().getSimpleName();
     }
 }

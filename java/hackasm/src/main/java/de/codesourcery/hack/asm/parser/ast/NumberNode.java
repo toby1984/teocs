@@ -28,7 +28,11 @@ public class NumberNode extends ASTNode implements ILiteralValueNode
             @Override
             public int toInt(String value)
             {
-                return Integer.parseInt( value.substring( 1 ), 2 );
+                if ( value.startsWith( "$" ) )
+                {
+                    return Integer.parseInt( value.substring( 1 ), 2 );
+                }
+                return Integer.parseInt( value.substring( 2 ), 2 );
             }
         };
 
@@ -68,23 +72,30 @@ public class NumberNode extends ASTNode implements ILiteralValueNode
         return s != null && ( isDecimalNumber(s) || isHexNumber(s) || isBinaryNumber( s ) );
     }
 
-    private static boolean isBinaryNumber(String s)
+    private static boolean isBinaryNumber(String x)
     {
-        if ( s.startsWith( "%" ) )
+        final String raw;
+        if ( x.startsWith( "%" ) )
         {
-            boolean gotDigits = false;
-            for (int i = 1, len = s.length(); i < len; i++)
-            {
-                switch (s.charAt( i ))
-                {
-                    case '0': case '1': gotDigits=true; break;
-                    default:
-                        return false;
-                }
-            }
-            return gotDigits;
+            raw = x.substring(1);
         }
-        return false;
+        else if ( x.startsWith("0b" ) )
+        {
+            raw = x.substring( 2 );
+        } else {
+            return false;
+        }
+        boolean gotDigits = false;
+        for (int i = 1, len = raw.length(); i < len; i++)
+        {
+            switch (raw.charAt( i ))
+            {
+                case '0': case '1': gotDigits=true; break;
+                default:
+                    return false;
+            }
+        }
+        return gotDigits;
     }
 
     private static boolean isDecimalNumber(String s)
@@ -146,5 +157,11 @@ public class NumberNode extends ASTNode implements ILiteralValueNode
     public Integer value(ParseContext ctx)
     {
         return value();
+    }
+
+    @Override
+    public String toString()
+    {
+        return "number: "+stringValue;
     }
 }

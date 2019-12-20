@@ -9,7 +9,7 @@ public enum Jump
     EQ("JEQ"),
     NEQ("JNE"),
     GT("JGT"),
-    GTE("JGTE"),
+    GTE("JGE"),
     LT("JLT"),
     LTE("JLE");
 
