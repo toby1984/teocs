@@ -28,6 +28,14 @@ public class Symbol
         this.type = type;
     }
 
+    public boolean is(Type t) {
+        return t.equals( this.type );
+    }
+
+    public boolean isNot(Type t) {
+        return ! is(t);
+    }
+
     public Identifier name()
     {
         return name;

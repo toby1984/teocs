@@ -1,5 +1,6 @@
 package de.codesourcery.hack.asm.parser.ast;
 
+import de.codesourcery.hack.asm.parser.Operator;
 import de.codesourcery.hack.asm.parser.TextRegion;
 
 import java.util.List;
@@ -98,11 +99,27 @@ public interface IASTNode
         return this instanceof OperatorNode;
     }
 
+    default OperatorNode asOperatorNode() {
+        return (OperatorNode) this;
+    }
+
     default boolean isNumberLiteral() {
         return this instanceof NumberNode;
     }
 
+    default NumberNode asNumber() {
+        return (NumberNode) this;
+    }
+
     default boolean isJump() {
         return this instanceof JumpNode;
+    }
+
+    default boolean isIdentifier() {
+        return this instanceof IdentifierNode;
+    }
+
+    default IdentifierNode asIdentifierNode() {
+        return (IdentifierNode) this;
     }
 }

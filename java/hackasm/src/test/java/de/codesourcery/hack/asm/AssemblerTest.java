@@ -41,14 +41,14 @@ public class AssemblerTest
 
         // test jump instructions
         //                     iXX_acccccc_ddd_jjj
-        assertInsn( 0b100_0101010_000_011, asm.assemble( "0;JGE" ) );
-        assertInsn( 0b100_0101010_000_001, asm.assemble( "0;JGT" ) );
-        assertInsn( 0b100_0101010_000_000, asm.assemble( "0" ) );
-        assertInsn( 0b100_0101010_000_010, asm.assemble( "0;JEQ" ) );
-        assertInsn( 0b100_0101010_000_100, asm.assemble( "0;JLT" ) );
-        assertInsn( 0b100_0101010_000_101, asm.assemble( "0;JNE" ) );
-        assertInsn( 0b100_0101010_000_110, asm.assemble( "0;JLE" ) );
-        assertInsn( 0b100_0101010_000_111, asm.assemble( "0;JMP" ) );
+        assertInsn( 0b111_0101010_000_011, asm.assemble( "0;JGE" ) );
+        assertInsn( 0b111_0101010_000_001, asm.assemble( "0;JGT" ) );
+        assertInsn( 0b111_0101010_000_000, asm.assemble( "0" ) );
+        assertInsn( 0b111_0101010_000_010, asm.assemble( "0;JEQ" ) );
+        assertInsn( 0b111_0101010_000_100, asm.assemble( "0;JLT" ) );
+        assertInsn( 0b111_0101010_000_101, asm.assemble( "0;JNE" ) );
+        assertInsn( 0b111_0101010_000_110, asm.assemble( "0;JLE" ) );
+        assertInsn( 0b111_0101010_000_111, asm.assemble( "0;JMP" ) );
     }
 
     @Test
@@ -56,14 +56,14 @@ public class AssemblerTest
 
         // test jump instructions
         //                     iXX_acccccc_ddd_jjj
-        assertInsn( 0b100_0101010_000_000, asm.assemble( "0" ) );
-        assertInsn( 0b100_0101010_001_000, asm.assemble( "M=0" ) );
-        assertInsn( 0b100_0101010_010_000, asm.assemble( "D=0" ) );
-        assertInsn( 0b100_0101010_011_000, asm.assemble( "MD=0" ) );
-        assertInsn( 0b100_0101010_100_000, asm.assemble( "A=0" ) );
-        assertInsn( 0b100_0101010_101_000, asm.assemble( "AM=0" ) );
-        assertInsn( 0b100_0101010_110_000, asm.assemble( "AD=0" ) );
-        assertInsn( 0b100_0101010_111_000, asm.assemble( "AMD=0" ) );
+        assertInsn( 0b111_0101010_000_000, asm.assemble( "0" ) );
+        assertInsn( 0b111_0101010_001_000, asm.assemble( "M=0" ) );
+        assertInsn( 0b111_0101010_010_000, asm.assemble( "D=0" ) );
+        assertInsn( 0b111_0101010_011_000, asm.assemble( "MD=0" ) );
+        assertInsn( 0b111_0101010_100_000, asm.assemble( "A=0" ) );
+        assertInsn( 0b111_0101010_101_000, asm.assemble( "AM=0" ) );
+        assertInsn( 0b111_0101010_110_000, asm.assemble( "AD=0" ) );
+        assertInsn( 0b111_0101010_111_000, asm.assemble( "AMD=0" ) );
     }
 
     @Test
@@ -71,38 +71,38 @@ public class AssemblerTest
 
         // a == 0
         //                     iXX_acccccc_ddd_jjj
-        assertInsn( 0b100_0001111_000_000, asm.assemble( "-D" ) );
+        assertInsn( 0b111_0001111_000_000, asm.assemble( "-D" ) );
 
-        assertInsn( 0b100_0111010_000_000, asm.assemble( "-1" ) );
-        assertInsn( 0b100_0111111_000_000, asm.assemble( "1" ) );
-        assertInsn( 0b100_0101010_000_000, asm.assemble( "0" ) );
-        assertInsn( 0b100_0001100_000_000, asm.assemble( "D" ) );
-        assertInsn( 0b100_0110000_000_000, asm.assemble( "A" ) );
-        assertInsn( 0b100_0001101_000_000, asm.assemble( "!D" ) );
-        assertInsn( 0b100_0110001_000_000, asm.assemble( "!A" ) );
-        assertInsn( 0b100_0110011_000_000, asm.assemble( "-A" ) );
-        assertInsn( 0b100_0011111_000_000, asm.assemble( "D+1" ) );
-        assertInsn( 0b100_0110111_000_000, asm.assemble( "A+1" ) );
-        assertInsn( 0b100_0001110_000_000, asm.assemble( "D-1" ) );
-        assertInsn( 0b100_0110010_000_000, asm.assemble( "A-1" ) );
-        assertInsn( 0b100_0000010_000_000, asm.assemble( "D+A" ) );
-        assertInsn( 0b100_0010011_000_000, asm.assemble( "D-A" ) );
-        assertInsn( 0b100_0000111_000_000, asm.assemble( "A-D" ) );
-        assertInsn( 0b100_0000000_000_000, asm.assemble( "D&A" ) );
-        assertInsn( 0b100_0010101_000_000, asm.assemble( "D|A" ) );
+        assertInsn( 0b111_0111010_000_000, asm.assemble( "-1" ) );
+        assertInsn( 0b111_0111111_000_000, asm.assemble( "1" ) );
+        assertInsn( 0b111_0101010_000_000, asm.assemble( "0" ) );
+        assertInsn( 0b111_0001100_000_000, asm.assemble( "D" ) );
+        assertInsn( 0b111_0110000_000_000, asm.assemble( "A" ) );
+        assertInsn( 0b111_0001101_000_000, asm.assemble( "!D" ) );
+        assertInsn( 0b111_0110001_000_000, asm.assemble( "!A" ) );
+        assertInsn( 0b111_0110011_000_000, asm.assemble( "-A" ) );
+        assertInsn( 0b111_0011111_000_000, asm.assemble( "D+1" ) );
+        assertInsn( 0b111_0110111_000_000, asm.assemble( "A+1" ) );
+        assertInsn( 0b111_0001110_000_000, asm.assemble( "D-1" ) );
+        assertInsn( 0b111_0110010_000_000, asm.assemble( "A-1" ) );
+        assertInsn( 0b111_0000010_000_000, asm.assemble( "D+A" ) );
+        assertInsn( 0b111_0010011_000_000, asm.assemble( "D-A" ) );
+        assertInsn( 0b111_0000111_000_000, asm.assemble( "A-D" ) );
+        assertInsn( 0b111_0000000_000_000, asm.assemble( "D&A" ) );
+        assertInsn( 0b111_0010101_000_000, asm.assemble( "D|A" ) );
 
         // a ==
         //                     iXX_acccccc_ddd_jjj
-        assertInsn( 0b100_1110000_000_000, asm.assemble( "M" ) );
-        assertInsn( 0b100_1110001_000_000, asm.assemble( "!M" ) );
-        assertInsn( 0b100_1110011_000_000, asm.assemble( "-M" ) );
-        assertInsn( 0b100_1110111_000_000, asm.assemble( "M+1" ) );
-        assertInsn( 0b100_1110010_000_000, asm.assemble( "M-1" ) );
-        assertInsn( 0b100_1000010_000_000, asm.assemble( "D+M" ) );
-        assertInsn( 0b100_1010011_000_000, asm.assemble( "D-M" ) );
-        assertInsn( 0b100_1000111_000_000, asm.assemble( "M-D" ) );
-        assertInsn( 0b100_1000000_000_000, asm.assemble( "D&M" ) );
-        assertInsn( 0b100_1010101_000_000, asm.assemble( "D|M" ) );
+        assertInsn( 0b111_1110000_000_000, asm.assemble( "M" ) );
+        assertInsn( 0b111_1110001_000_000, asm.assemble( "!M" ) );
+        assertInsn( 0b111_1110011_000_000, asm.assemble( "-M" ) );
+        assertInsn( 0b111_1110111_000_000, asm.assemble( "M+1" ) );
+        assertInsn( 0b111_1110010_000_000, asm.assemble( "M-1" ) );
+        assertInsn( 0b111_1000010_000_000, asm.assemble( "D+M" ) );
+        assertInsn( 0b111_1010011_000_000, asm.assemble( "D-M" ) );
+        assertInsn( 0b111_1000111_000_000, asm.assemble( "M-D" ) );
+        assertInsn( 0b111_1000000_000_000, asm.assemble( "D&M" ) );
+        assertInsn( 0b111_1010101_000_000, asm.assemble( "D|M" ) );
     }
 
     @Test

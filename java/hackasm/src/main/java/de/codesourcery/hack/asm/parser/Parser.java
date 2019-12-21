@@ -7,7 +7,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Stack;
+import java.util.function.BooleanSupplier;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 public class Parser
 {
@@ -176,6 +178,7 @@ public class Parser
                 if ( ! token.is(TokenType.COMMA ) ) {
                     break;
                 }
+                consumeToken();
                 expected = true;
             } while ( true );
             // .macro func(a,b,c)
@@ -228,9 +231,12 @@ public class Parser
             if ( tok.isWhitespace() || tok.isNewline() )
             {
                 body.remove(idx);
+            } else {
+                break;
             }
         }
         result.add( new MacroBody(body) );
+        context.symbolTable().define(result.getName(), result, Symbol.Type.MACRO);
         return result;
     }
 
@@ -282,7 +288,35 @@ public class Parser
 
         while ( true )
         {
-            if (token.is(TokenType.OPERATOR))
+            if ( token.is(TokenType.ROUND_OPEN ) )
+            {
+                final OperatorNode node = new OperatorNode(Operator.PARENTHESIS, token.region() );
+                consumeToken();
+                opStack.push(node);
+                sawOperator = true;
+            }
+            else if ( token.is(TokenType.ROUND_CLOSE ) )
+            {
+                /*
+                while the operator at the top of the operator stack is not a left paren:
+                   pop the operator from the operator stack onto the output queue.
+                if the stack runs out without finding a left paren, then there are mismatched parentheses.
+                if there is a left paren at the top of the operator stack, then:
+                pop the operator from the operator stack and discard it
+                 */
+                consumeToken();
+                final BooleanSupplier stop = () -> opStack.peek().operator == Operator.PARENTHESIS || opStack.peek().operator == Operator.FUNCTION_INVOCATION;
+                while ( ! opStack.isEmpty() && ! stop.getAsBoolean() )
+                {
+                    popOperator(opStack,valueStack);
+                }
+                if ( opStack.isEmpty() && ! stop.getAsBoolean() ) {
+                    fail("Mismatched parenthesis");
+                }
+                opStack.pop(); // discard opening parens / function invocation
+                sawOperator = false;
+            }
+            else if (token.is(TokenType.OPERATOR))
             {
                 Operator op = Operator.parseOperator(token.value.charAt(0));
                 if ( sawOperator && op == Operator.MINUS ) { // this is actually an unary minus
@@ -300,12 +334,37 @@ public class Parser
             }
             else
             {
-                final ASTNode atom = parseAtom();
+                ASTNode atom = parseAtom();
                 if ( atom == null ) {
                     break;
                 }
-                sawOperator = false;
-                valueStack.push(atom);
+                if ( atom.isIdentifier() && token.is(TokenType.ROUND_OPEN ) )
+                {
+                    final Identifier id = atom.asIdentifierNode().name;
+                    final Symbol sym = context.symbolTable().get(id);
+                    if (sym == null)
+                    {
+                        fail("Unknown symbol '"+id.value+"'");
+                    }
+                    if ( sym.isNot(Symbol.Type.MACRO) )
+                    {
+                        fail("Expected a macro but got "+sym);
+                    }
+
+                    consumeToken(); // consume opening parens
+                    final MacroInvocation invocation = new MacroInvocation();
+                    invocation.add( atom );
+
+                    final OperatorNode node = new OperatorNode(Operator.FUNCTION_INVOCATION, token.region());
+                    node.add(invocation);
+                    opStack.push(node);
+                    sawOperator = true;
+                }
+                else
+                {
+                    sawOperator = false;
+                    valueStack.push(atom);
+                }
             }
         }
         while ( ! opStack.isEmpty() )
@@ -324,10 +383,22 @@ public class Parser
     private void popOperator(Stack<OperatorNode> opStack, Stack<ASTNode> valueStack)
     {
         OperatorNode op = opStack.pop();
-        if ( valueStack.size() < op.operator.argumentCount ) {
-            fail("Too few arguments for '"+op.operator.literal+"', expected "+op.operator.argumentCount+" but got only "+valueStack.size());
+        final String opLiteral;
+        final int argCount;
+        if ( op.operator != Operator.FUNCTION_INVOCATION ) {
+            argCount = op.operator.argumentCount;
+            opLiteral = "operator '"+ op.operator.literal +"'";
+        } else {
+            MacroInvocation inv = (MacroInvocation) op.firstChild();
+            final Symbol symbol = context.symbolTable().get(inv.getName());
+            MacroDefinition def = (MacroDefinition) symbol.value();
+            argCount = def.getArgumentCount();
+            opLiteral = "function '"+def.getName().value+"'";
         }
-        for ( int i = 0 ; i < op.operator.argumentCount ; i++ ) {
+        if ( valueStack.size() < argCount ) {
+            fail("Too few arguments for "+opLiteral+", expected "+argCount+" but got only "+valueStack.size());
+        }
+        for ( int i = 0 ; i < argCount ; i++ ) {
             op.add( valueStack.pop() );
         }
         Collections.reverse(op.children() );
@@ -341,7 +412,9 @@ public class Parser
             pop operators from the operator stack onto the output queue.
          */
         final Operator top = opStack.peek().operator;
-        return top.precedence > current.operator.precedence || ( top.precedence == current.operator.precedence && top.isLeftAssociative);
+        return (top == Operator.FUNCTION_INVOCATION ||
+               top.precedence > current.operator.precedence ||
+               (top.precedence == current.operator.precedence && top.isLeftAssociative)) && top != Operator.PARENTHESIS;
     }
 
     private ASTNode parseAtom()

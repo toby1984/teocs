@@ -31,6 +31,10 @@ public class Token
         return t.equals(this.type);
     }
 
+    public boolean isNot(TokenType t) {
+        return ! is(t);
+    }
+
     public boolean isEOF() {
         return is(TokenType.EOF);
     }

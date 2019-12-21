@@ -2,14 +2,17 @@ package de.codesourcery.hack.asm.parser;
 
 public enum Operator
 {
+    PARENTHESIS('(',105, 2, true,false),
     UNARY_MINUS('-',100, 1, false,false),
+    FUNCTION_INVOCATION('(',95, 2, false,false),
     BITWISE_NOT('!',95,1,false),
+    TIMES('*',91, 2, true),
     PLUS('+',90, 2, true),
     MINUS('-',90, 2, true),
     // --
     BITWISE_AND('&',85, 2,true),
     BITWISE_OR('|',80, 2,true),
-    ASSIGNMENT('=',75, 2, false),
+    ASSIGNMENT('=',75, 2, false)
     ;
 
     public final char literal;
