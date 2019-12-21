@@ -6,7 +6,8 @@ public class Symbol
 {
     public enum Type {
         LABEL,
-        UNKNOWN;
+        UNKNOWN,
+        MACRO
     }
 
     public final Identifier name;

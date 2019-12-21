@@ -14,5 +14,10 @@ public enum TokenType
     EOF,
     NEWLINE,
     WHITESPACE,
-    IDENTIFIER
+    IDENTIFIER,
+    ROUND_OPEN,
+    ROUND_CLOSE,
+    CURLY_OPEN,
+    CURLY_CLOSE
+
 }

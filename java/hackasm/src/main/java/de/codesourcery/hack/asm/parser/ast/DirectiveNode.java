@@ -10,7 +10,8 @@ public class DirectiveNode extends ASTNode
         /**
          * Initialize a word of memory.
          */
-        WORD("word");
+        WORD("word"),
+        MACRO("macro");
 
         public final String literal;
 

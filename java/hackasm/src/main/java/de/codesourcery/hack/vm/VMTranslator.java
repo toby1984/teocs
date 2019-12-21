@@ -102,5 +102,6 @@ public class VMTranslator
                     throw new RuntimeException("Unknown command: "+line);
             }
         }
+        throw new RuntimeException("Not implemented");
     }
 }

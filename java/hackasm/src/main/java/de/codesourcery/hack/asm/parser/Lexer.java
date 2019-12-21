@@ -90,6 +90,22 @@ public class Lexer
                     parseBuffer(start);
                     tokens.add( new Token( scanner.next() , TokenType.COLON, scanner.location() ) );
                     return;
+                case '(':
+                    parseBuffer(start);
+                    tokens.add( new Token( scanner.next() , TokenType.ROUND_OPEN, scanner.location() ) );
+                    return;
+                case ')':
+                    parseBuffer(start);
+                    tokens.add( new Token( scanner.next() , TokenType.ROUND_CLOSE, scanner.location() ) );
+                    return;
+                case '{':
+                    parseBuffer(start);
+                    tokens.add( new Token( scanner.next() , TokenType.CURLY_OPEN, scanner.location() ) );
+                    return;
+                case '}':
+                    parseBuffer(start);
+                    tokens.add( new Token( scanner.next() , TokenType.CURLY_CLOSE, scanner.location() ) );
+                    return;
                 case '#':
                     parseBuffer(start);
                     tokens.add( new Token( scanner.next() , TokenType.HASH, scanner.location() ) );

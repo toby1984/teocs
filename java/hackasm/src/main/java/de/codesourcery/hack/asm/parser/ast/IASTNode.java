@@ -15,6 +15,10 @@ public interface IASTNode
 
     void add(ASTNode child);
 
+    default int indexOf(IASTNode child) {
+        return children().indexOf(child);
+    }
+
     void addAll(List<ASTNode> child);
 
     void setParent(ASTNode node);

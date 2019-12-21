@@ -1,22 +1,13 @@
 package de.codesourcery.hack.asm.parser;
 
 import de.codesourcery.hack.asm.Jump;
-import de.codesourcery.hack.asm.parser.ast.AST;
-import de.codesourcery.hack.asm.parser.ast.ASTNode;
-import de.codesourcery.hack.asm.parser.ast.CommentNode;
-import de.codesourcery.hack.asm.parser.ast.DirectiveNode;
-import de.codesourcery.hack.asm.parser.ast.IdentifierNode;
-import de.codesourcery.hack.asm.parser.ast.InstructionNode;
-import de.codesourcery.hack.asm.parser.ast.JumpNode;
-import de.codesourcery.hack.asm.parser.ast.LabelNode;
-import de.codesourcery.hack.asm.parser.ast.NumberNode;
-import de.codesourcery.hack.asm.parser.ast.OperatorNode;
-import de.codesourcery.hack.asm.parser.ast.StatementNode;
+import de.codesourcery.hack.asm.parser.ast.*;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Stack;
+import java.util.function.Predicate;
 
 public class Parser
 {
@@ -89,8 +80,9 @@ public class Parser
         }
     }
 
-    private void consumeToken() {
+    private Token consumeToken() {
         token = lexer.next();
+        return token;
     }
 
     private void consumeTokens(int count)
@@ -144,8 +136,101 @@ public class Parser
             }
             result = new DirectiveNode( d, start.merge( token.region() ) );
             consumeToken();
-            result.addAll( parseExpressionList(true) );
+            if ( d == DirectiveNode.Directive.MACRO ) {
+                result.add(parseMacro());
+            }
+            else
+            {
+                result.addAll(parseExpressionList(true));
+            }
         }
+        return result;
+    }
+
+    private ASTNode parseMacro()
+    {
+        final MacroDefinition result = new MacroDefinition();
+
+        // parse macro name
+        final ASTNode name = parseIdentifier();
+        if ( name == null ) {
+            fail("Expected a macro name");
+        }
+        result.add( name );
+
+        // parse macro signature
+        MacroSignature sig = new MacroSignature();
+        result.add( sig );
+        if ( token.is(TokenType.ROUND_OPEN) ) {
+            consumeToken();
+            boolean expected = false;
+            do {
+                ASTNode paramName = parseIdentifier();
+                if ( paramName == null ) {
+                    if ( expected ) {
+                        fail("Expected a parameter name");
+                    }
+                    break;
+                }
+                sig.add( paramName );
+                if ( ! token.is(TokenType.COMMA ) ) {
+                    break;
+                }
+                expected = true;
+            } while ( true );
+            // .macro func(a,b,c)
+            if ( ! token.is(TokenType.ROUND_CLOSE ) ) {
+                fail("Expected ')'");
+            }
+            consumeToken();
+        }
+
+        // parse start of macro
+        final boolean isSingleLineMacro;
+        if ( "=".equals( token.value ) ) {
+            consumeToken();
+            isSingleLineMacro = true;
+        }
+        else if ( token.is(TokenType.CURLY_OPEN ) )
+        {
+            consumeToken();
+            isSingleLineMacro = false;
+        } else {
+            fail("Expected '=' or '{");
+            throw new RuntimeException("Never reached"); // make compiler happy
+        }
+
+        // gather body tokens
+        final List<Token> body = new ArrayList<>();
+        lexer.setSkipWhitespace(false);
+        try
+        {
+            final Predicate<Token> p = isSingleLineMacro ? tok -> tok.isNewline() || tok.is(TokenType.HASH) : tok -> tok.is(TokenType.CURLY_CLOSE);
+            while ( ! token.isEOF() && ! p.test( token ) ) {
+                body.add( token );
+                consumeToken();
+            }
+            if ( ! isSingleLineMacro ) {
+                if ( ! token.is(TokenType.CURLY_CLOSE) ) {
+                    fail("Expected '}");
+                }
+                consumeToken();
+            }
+        }
+        finally {
+            lexer.setSkipWhitespace(true);
+        }
+        // strip trailing whitespace and newlines from macro body
+        for ( ; ! body.isEmpty() ; )
+        {
+            final int idx = body.size()-1;
+            final Token tok = body.get( idx );
+            if ( tok.isWhitespace() || tok.isNewline() )
+            {
+                body.remove(idx);
+            }
+        }
+        result.add( new MacroBody(body) );
         return result;
     }
 

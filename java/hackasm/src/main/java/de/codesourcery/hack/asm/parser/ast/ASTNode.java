@@ -63,6 +63,24 @@ public abstract class ASTNode implements IASTNode
         return this.region;
     }
 
+    public void replaceChild(ASTNode child, ASTNode newChild)
+    {
+        final int idx = indexOf(child);
+        if ( idx == -1 ) {
+            throw new IllegalStateException("Child not found?");
+        }
+        children.set(idx,newChild);
+        newChild.setParent(this);
+    }
+
+    public void replaceWith(ASTNode other)
+    {
+        if ( hasNoParent() ) {
+            throw new IllegalStateException("Cannot replace, node has no parent");
+        }
+        parent().replaceChild(this, other );
+    }
+
     @Override
     public void findAll(Predicate<ASTNode> predicate, List<ASTNode> result)
     {

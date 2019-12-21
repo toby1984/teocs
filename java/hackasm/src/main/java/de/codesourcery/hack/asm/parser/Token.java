@@ -39,6 +39,10 @@ public class Token
         return is(TokenType.NEWLINE);
     }
 
+    public boolean isWhitespace() {
+        return is(TokenType.WHITESPACE);
+    }
+
     @Override
     public String toString()
     {

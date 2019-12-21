@@ -24,6 +24,15 @@ public class ParserTest
     }
 
     @Test
+    public void parseSingleLineMacro()
+    {
+        final AST ast = parse(".macro test = 1 #test" );
+        assertNotNull(ast);
+        assertTrue( ast.hasChildren() );
+        assertTrue( ast.child(0) instanceof StatementNode );
+    }
+
+    @Test
     public void parseCommentLine()
     {
         final AST ast = parse("# this is a comment" );
