@@ -32,10 +32,19 @@ public class DirectiveNode extends ASTNode
 
     public final Directive directive;
 
+    private DirectiveNode(Directive directive) {
+        this.directive = directive;
+    }
     public DirectiveNode(Directive directive, TextRegion region)
     {
         super( region );
         Validate.notNull( directive, "direction must not be null" );
         this.directive = directive;
+    }
+
+    @Override
+    public ASTNode copyNodeInternal()
+    {
+        return new DirectiveNode(this.directive);
     }
 }

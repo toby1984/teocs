@@ -11,7 +11,7 @@ public abstract class ASTNode implements IASTNode
 {
     public ASTNode parent;
     public final List<ASTNode> children = new ArrayList<>();
-    private TextRegion region;
+    protected TextRegion region;
 
     protected ASTNode() {
     }
@@ -50,6 +50,26 @@ public abstract class ASTNode implements IASTNode
     {
         return children;
     }
+
+    public final ASTNode copySubtree() {
+
+        final ASTNode result = copyNode();
+        result.region = this.region == null ? null : this.region.copy();
+        for ( ASTNode child : children ) {
+            result.add( child.copySubtree() );
+        }
+        return result;
+    }
+
+    @Override
+    public final ASTNode copyNode()
+    {
+        final ASTNode result = copyNodeInternal();
+        result.region = region == null ? null : region.copy();
+        return result;
+    }
+
+    protected abstract ASTNode copyNodeInternal();
 
     @Override
     public ASTNode parent()
@@ -154,5 +174,9 @@ public abstract class ASTNode implements IASTNode
     public String toString()
     {
         return getClass().getSimpleName();
+    }
+
+    protected TextRegion copyRegion() {
+        return region == null ? null : region.copy();
     }
 }

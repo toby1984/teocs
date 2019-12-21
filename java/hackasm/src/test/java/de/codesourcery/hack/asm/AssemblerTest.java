@@ -67,6 +67,20 @@ public class AssemblerTest
     }
 
     @Test
+    public void testMacroExpansion1() {
+
+        assertInsn( 0b111_0001111_000_000, asm.assemble( ".macro test(x) = -x\n" +
+                                                             "test(D)" ) );
+    }
+
+    @Test
+    public void testMacroExpansion2() {
+
+        assertInsn( 0b111_0101010_100_000, asm.assemble( ".macro test(src,dst) = dst=src\n" +
+                                                             "test(0,A)" ) );
+    }
+
+    @Test
     public void testComputations() {
 
         // a == 0

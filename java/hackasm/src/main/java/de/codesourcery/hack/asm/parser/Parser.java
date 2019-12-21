@@ -2,6 +2,7 @@ package de.codesourcery.hack.asm.parser;
 
 import de.codesourcery.hack.asm.Jump;
 import de.codesourcery.hack.asm.parser.ast.*;
+import org.apache.commons.lang3.Validate;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -13,19 +14,34 @@ import java.util.function.Supplier;
 
 public class Parser
 {
-    private Lexer lexer;
-    private ParseContext context;
+    public Lexer lexer;
+    public ParseContext context;
+    public Token token;
 
     private final StringBuilder buffer = new StringBuilder();
 
-    private Token token;
+    public Parser() {
+    }
+
+    public Parser(Lexer lexer, ParseContext ctx) {
+        Validate.notNull(lexer, "lexer must not be null");
+        Validate.notNull(ctx, "ctx must not be null");
+        this.lexer = lexer;
+        this.context = ctx;
+        consumeToken();
+    }
 
     public AST parse(Lexer lexer)
     {
         this.lexer = lexer;
         this.context = new ParseContext();
+        consumeToken();
+        return parseProgram();
+    }
+
+    public AST parseProgram()
+    {
         final AST ast = new AST();
-        token = lexer.next();
         while ( ! token.isEOF() )
         {
             consumeNewLines();
@@ -41,7 +57,7 @@ public class Parser
         return ast;
     }
 
-    private ASTNode parseStatement()
+    public ASTNode parseStatement()
     {
         StatementNode result = new StatementNode();
         /* <comment>
@@ -279,7 +295,7 @@ public class Parser
         return result;
     }
 
-    private ASTNode parseExpression()
+    public ASTNode parseExpression()
     {
         final Stack<ASTNode> valueStack = new Stack<>();
         final Stack<OperatorNode> opStack = new Stack<>();
@@ -313,7 +329,12 @@ public class Parser
                 if ( opStack.isEmpty() && ! stop.getAsBoolean() ) {
                     fail("Mismatched parenthesis");
                 }
-                opStack.pop(); // discard opening parens / function invocation
+                if ( opStack.peek().operator == Operator.PARENTHESIS )
+                {
+                    opStack.pop(); // discard opening parens / function invocation
+                } else {
+                    popOperator(opStack, valueStack );
+                }
                 sawOperator = false;
             }
             else if (token.is(TokenType.OPERATOR))
@@ -385,24 +406,33 @@ public class Parser
         OperatorNode op = opStack.pop();
         final String opLiteral;
         final int argCount;
+        final ASTNode destNode;
         if ( op.operator != Operator.FUNCTION_INVOCATION ) {
             argCount = op.operator.argumentCount;
             opLiteral = "operator '"+ op.operator.literal +"'";
+            destNode = op;
         } else {
             MacroInvocation inv = (MacroInvocation) op.firstChild();
             final Symbol symbol = context.symbolTable().get(inv.getName());
             MacroDefinition def = (MacroDefinition) symbol.value();
             argCount = def.getArgumentCount();
             opLiteral = "function '"+def.getName().value+"'";
+            destNode = inv;
         }
         if ( valueStack.size() < argCount ) {
             fail("Too few arguments for "+opLiteral+", expected "+argCount+" but got only "+valueStack.size());
         }
+        int initialNodeCount = destNode.childCount();
         for ( int i = 0 ; i < argCount ; i++ ) {
-            op.add( valueStack.pop() );
+            destNode.add( valueStack.pop() );
         }
-        Collections.reverse(op.children() );
-        valueStack.push( op );
+        if ( initialNodeCount == 0 )
+        {
+            Collections.reverse(destNode.children());
+        } else {
+            Collections.reverse(destNode.children().subList(1, destNode.childCount()-1 ) );
+        }
+        valueStack.push( destNode );
     }
 
     private boolean mustPop(OperatorNode current, Stack<OperatorNode> opStack) {

@@ -8,6 +8,10 @@ public class JumpNode extends ASTNode
 {
     public final Jump jump;
 
+    private JumpNode(Jump jump) {
+        this.jump = jump;
+    }
+
     public JumpNode(Jump jump, TextRegion region)
     {
         super(region);
@@ -19,5 +23,11 @@ public class JumpNode extends ASTNode
     public String toString()
     {
         return "jump: "+jump;
+    }
+
+    @Override
+    public ASTNode copyNodeInternal()
+    {
+        return new JumpNode(jump);
     }
 }

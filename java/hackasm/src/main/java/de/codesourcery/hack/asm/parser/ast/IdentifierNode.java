@@ -10,6 +10,10 @@ public class IdentifierNode extends ASTNode implements ILiteralValueNode
 {
     public Identifier name;
 
+    private IdentifierNode(Identifier name) {
+        this.name = name;
+    }
+
     public IdentifierNode(Identifier name,TextRegion region)
     {
         super( region );
@@ -31,5 +35,11 @@ public class IdentifierNode extends ASTNode implements ILiteralValueNode
     public String toString()
     {
         return "identifier: '"+name.value+"'";
+    }
+
+    @Override
+    public ASTNode copyNodeInternal()
+    {
+        return new IdentifierNode(name);
     }
 }

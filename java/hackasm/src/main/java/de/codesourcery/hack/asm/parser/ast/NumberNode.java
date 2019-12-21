@@ -50,6 +50,17 @@ public class NumberNode extends ASTNode implements ILiteralValueNode
         this.type = getType(value);
     }
 
+    private NumberNode(String stringValue, Type type) {
+        this.stringValue = stringValue;
+        this.type = type;
+    }
+
+    @Override
+    public ASTNode copyNodeInternal()
+    {
+        return new NumberNode(this.stringValue,this.type);
+    }
+
     public int value() {
         return type.toInt( this.stringValue );
     }

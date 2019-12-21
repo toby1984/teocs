@@ -10,6 +10,10 @@ public class LabelNode extends ASTNode implements ILiteralValueNode
 {
     public Identifier name;
 
+    public LabelNode(Identifier name) {
+        this.name = name;
+    }
+
     public LabelNode(Identifier name,TextRegion region)
     {
         super( region );
@@ -34,5 +38,11 @@ public class LabelNode extends ASTNode implements ILiteralValueNode
     public String toString()
     {
         return "label: '"+name.value+"'";
+    }
+
+    @Override
+    public ASTNode copyNodeInternal()
+    {
+        return new LabelNode(name);
     }
 }

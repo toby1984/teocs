@@ -26,4 +26,10 @@ public class MacroBody extends ASTNode
         }
         return result;
     }
+
+    @Override
+    public ASTNode copyNodeInternal()
+    {
+        return new MacroBody(this.body);
+    }
 }

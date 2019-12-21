@@ -16,6 +16,10 @@ public interface IASTNode
 
     void add(ASTNode child);
 
+    ASTNode copySubtree();
+
+    ASTNode copyNode();
+
     default int indexOf(IASTNode child) {
         return children().indexOf(child);
     }

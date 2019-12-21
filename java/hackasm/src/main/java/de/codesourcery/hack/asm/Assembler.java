@@ -1,22 +1,7 @@
 package de.codesourcery.hack.asm;
 
-import de.codesourcery.hack.asm.parser.Lexer;
-import de.codesourcery.hack.asm.parser.Operator;
-import de.codesourcery.hack.asm.parser.ParseContext;
-import de.codesourcery.hack.asm.parser.Parser;
-import de.codesourcery.hack.asm.parser.Scanner;
-import de.codesourcery.hack.asm.parser.Symbol;
-import de.codesourcery.hack.asm.parser.ast.AST;
-import de.codesourcery.hack.asm.parser.ast.ASTNode;
-import de.codesourcery.hack.asm.parser.ast.DirectiveNode;
-import de.codesourcery.hack.asm.parser.ast.IASTNode;
-import de.codesourcery.hack.asm.parser.ast.ILiteralValueNode;
-import de.codesourcery.hack.asm.parser.ast.IdentifierNode;
-import de.codesourcery.hack.asm.parser.ast.InstructionNode;
-import de.codesourcery.hack.asm.parser.ast.JumpNode;
-import de.codesourcery.hack.asm.parser.ast.LabelNode;
-import de.codesourcery.hack.asm.parser.ast.NumberNode;
-import de.codesourcery.hack.asm.parser.ast.OperatorNode;
+import de.codesourcery.hack.asm.parser.*;
+import de.codesourcery.hack.asm.parser.ast.*;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
@@ -74,7 +59,33 @@ public class Assembler
         // parse source
         final AST ast = p.parse( new Lexer( new Scanner( source ) ) );
 
+        // expand macros
         final ParseContext parseCtx = p.getContext();
+
+        ast.visit((IASTNode.IterationVisitor<Integer>) (node, ctx) ->
+        {
+            if ( node instanceof MacroInvocation )
+            {
+                final MacroInvocation inv = (MacroInvocation) node;
+                final Identifier name = inv.getName();
+
+                final Symbol sym = parseCtx.symbolTable().get(name);
+                if ( sym == null ) {
+                    throw new RuntimeException("Unknown macro "+name);
+                }
+                if ( ! sym.is(Symbol.Type.MACRO ) ) {
+                    throw new RuntimeException("Expected macro "+name+" but found "+sym);
+                }
+                final MacroDefinition def = (MacroDefinition) sym.value();
+                final int expectedArgCount = def.getArgumentCount();
+                final int actualArgCount = inv.getArgumentCount();
+                if ( expectedArgCount != actualArgCount) {
+                    throw new RuntimeException("Macro " + name + " expected " + expectedArgCount
+                                                   + " but invocation has "+ actualArgCount);
+                }
+                node.replaceWith( expandMacroInvocation( inv, def, parseCtx ) );
+            }
+        });
 
         // first pass: assign addresses to labels
         // easy as each instruction is 16 bytes only
@@ -128,6 +139,9 @@ public class Assembler
             {
                 final DirectiveNode.Directive d = ((DirectiveNode) node).directive;
                 switch(d) {
+                    case MACRO:
+                        ctx.dontGoDeeper();
+                        break;
                     case WORD:
                         for ( ASTNode child : node.children() )
                         {
@@ -150,6 +164,49 @@ public class Assembler
             }
         });
         return bout.toByteArray();
+    }
+
+    private ASTNode expandMacroInvocation(MacroInvocation inv, MacroDefinition def, ParseContext ctx)
+    {
+        final List<Token> body = def.getBody();
+        final String src = body.stream().map( x -> x.value ).collect(Collectors.joining());
+
+        // try to parse as expression first
+        Lexer lexer = new Lexer( new Scanner(src) );
+        Parser p = setupParser(def, ctx, lexer);
+
+        ASTNode ast = p.parseExpression();
+        if ( ast == null || ! lexer.eof() )
+        {
+            // try to parse as statements
+            lexer = new Lexer( new Scanner(src) );
+            p = setupParser(def, ctx, lexer);
+            ast = p.parseProgram();
+            if ( ast == null || ! lexer.eof() ) {
+                throw new RuntimeException("Failed to parse body of macro "+def.getName());
+            }
+        }
+        // now replace all identifiers inside the macro body
+        // with copies of the like-named parameters
+        ast.visit((IASTNode.IterationVisitor<Integer>) (node, ctx1) ->
+        {
+            if ( node.isIdentifier() )
+            {
+                int argIdx = def.getArgumentIndex(node.asIdentifierNode().name);
+                if ( argIdx != -1 ) {
+                    final ASTNode argCopy = inv.getArguments().get(argIdx).copySubtree();
+                    node.replaceWith(argCopy);
+                }
+            }
+        });
+        return ast;
+    }
+
+    private Parser setupParser(MacroDefinition def, ParseContext ctx, Lexer lexer)
+    {
+        final SymbolTable table = new SymbolTable( ctx.symbolTable().get( def.getName() ), ctx.symbolTable() );
+        final ParseContext subCtx= new ParseContext(table);
+        return new Parser(lexer, subCtx);
     }
 
     public static int bytesToWord(byte[] array,int offset) {

@@ -8,6 +8,10 @@ public class OperatorNode extends ASTNode
 {
     public final Operator operator;
 
+    private OperatorNode(Operator operator) {
+        this.operator = operator;
+    }
+
     public OperatorNode(Operator operator,TextRegion region)
     {
         super( region );
@@ -19,5 +23,11 @@ public class OperatorNode extends ASTNode
     public String toString()
     {
         return "operator: '"+operator.literal+"'";
+    }
+
+    @Override
+    public ASTNode copyNodeInternal()
+    {
+        return new OperatorNode(operator);
     }
 }

@@ -5,4 +5,9 @@ package de.codesourcery.hack.asm.parser.ast;
  */
 public class MacroSignature extends ASTNode
 {
+    @Override
+    public ASTNode copyNodeInternal()
+    {
+        return new MacroSignature();
+    }
 }

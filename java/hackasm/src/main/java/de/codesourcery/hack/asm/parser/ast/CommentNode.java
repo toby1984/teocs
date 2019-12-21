@@ -13,4 +13,14 @@ public class CommentNode extends ASTNode
         Validate.notNull( value, "value must not be null" );
         this.value = value;
     }
+
+    private CommentNode(String value) {
+        this.value = value;
+    }
+
+    @Override
+    public ASTNode copyNodeInternal()
+    {
+        return new CommentNode(value);
+    }
 }

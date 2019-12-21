@@ -20,11 +20,21 @@ public class MacroDefinition extends ASTNode
         return child(1).childCount();
     }
 
+    public int getArgumentIndex(Identifier name) {
+        return getArgumentNames().indexOf(name);
+    }
+
     public List<Identifier> getArgumentNames() {
         return child(1).children().stream().map(IdentifierNode.class::cast).map(x->x.name).collect(Collectors.toList());
     }
 
     public List<Token> getBody() {
         return ((MacroBody) child(2)).body;
+    }
+
+    @Override
+    public ASTNode copyNodeInternal()
+    {
+        return new MacroDefinition();
     }
 }

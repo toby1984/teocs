@@ -8,4 +8,10 @@ public class InstructionNode extends ASTNode
     {
         this.isLoadA = isLoadA;
     }
+
+    @Override
+    public ASTNode copyNodeInternal()
+    {
+        return new InstructionNode(isLoadA);
+    }
 }
