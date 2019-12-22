@@ -1,11 +1,18 @@
 package de.codesourcery.hack.vm;
 
+import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class VMTranslator
 {
+    private PrintWriter writer;
+
+    public VMTranslator(PrintWriter writer) {
+        this.writer = writer;
+    }
+
     /*
      * Memory layout (32k words = 64 KB)
      *
@@ -44,6 +51,60 @@ public class VMTranslator
             this.name = name;
         }
     }
+
+    private void memWrite(int address,int value) {
+        writer.println("@"+value);
+        writer.println("D=A");
+        writer.println("@"+address);
+        writer.println("M=D");
+    }
+
+    private void memReadIntoD(int address) {
+        writer.println("@"+address);
+        writer.println("D=M");
+    }
+
+    private void memReadIntoA(int address) {
+        writer.println("@"+address);
+        writer.println("A=M");
+    }
+
+    //  Push the value of segment[index] onto the stack.
+    private void push(MemorySegment segment, int idx) {
+        /*
+         * RAM[0] - SP - Top of stack ptr
+         * RAM[1] - LCL - Points to the base of the current VMs function's 'local' segment
+         * RAM[2] - ARG -  Points to the base of the current VMs function's 'argument' segment
+         * RAM[3] - THIS -  Points to the base of the current VMs function's 'this' segment (within the heap)
+         * RAM[4] - THAT -  Points to the base of the current VMs function's 'this' segment (within the heap)
+         * RAM[5-12] - Holds the contents of the 'temp' segment
+         * RAM[13-15] - Free to use by VM implementation for general purposes
+         */
+        int ptrAdr;
+        switch(segment)
+        {
+            case ARGUMENT: ptrAdr = 2; break;
+            case LOCAL:    ptrAdr = 1; break;
+            case THIS:     ptrAdr = 3; break;
+            case THAT:     ptrAdr = 4 ; break;
+            default:
+                throw new IllegalStateException("Unexpected value: " + segment);
+        }
+        writer.println("@"+ptrAdr); // A = "address register"
+        writer.println("D=A"); // D=Mem[A] =
+        writer.println("@"+idx);
+        writer.println("A=D+A"); // D=Mem[A] =
+        writer.println("D=M"); // D=Mem[A] =
+        writer.println("@"+0); // A = 0
+        writer.println("A=M"); // A = Mem[0] = Top of stack
+        writer.println("M=D"); // Top of stack =
+        writer.println("A=A-1");
+        writer.println("D=A");
+        writer.println("@"+0);
+        writer.println("M=D"); // update ToS ptr
+
+    }
+
     public String translate(String source)
     {
         final List<String> lines = Arrays.stream(  source.split( "\n") ).map( String::trim ).collect( Collectors.toList());;
