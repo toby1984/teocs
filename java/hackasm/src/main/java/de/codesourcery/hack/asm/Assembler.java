@@ -18,6 +18,9 @@ import java.util.stream.Collectors;
 
 public class Assembler
 {
+
+    private int maxMacroNestingDepth = 10;
+
     public static void main(String[] args) throws IOException
     {
         final InputStream in;
@@ -64,26 +67,29 @@ public class Assembler
 
         ast.visit((IASTNode.IterationVisitor<Integer>) (node, ctx) ->
         {
-            if ( node instanceof MacroInvocation )
+            ASTNode replacement = expandMacro(node, parseCtx);
+            if ( replacement != null )
             {
-                final MacroInvocation inv = (MacroInvocation) node;
-                final Identifier name = inv.getName();
-
-                final Symbol sym = parseCtx.symbolTable().get(name);
-                if ( sym == null ) {
-                    throw new RuntimeException("Unknown macro "+name);
-                }
-                if ( ! sym.is(Symbol.Type.MACRO ) ) {
-                    throw new RuntimeException("Expected macro "+name+" but found "+sym);
-                }
-                final MacroDefinition def = (MacroDefinition) sym.value();
-                final int expectedArgCount = def.getArgumentCount();
-                final int actualArgCount = inv.getArgumentCount();
-                if ( expectedArgCount != actualArgCount) {
-                    throw new RuntimeException("Macro " + name + " expected " + expectedArgCount
-                                                   + " but invocation has "+ actualArgCount);
-                }
-                node.replaceWith( expandMacroInvocation( inv, def, parseCtx ) );
+                int nestingDepth = 0;
+                ASTNode tmp;
+                do
+                {
+                    tmp = replacement.visit((node2, ctx2) ->
+                    {
+                        ASTNode tmp2 = expandMacro(node2,parseCtx);
+                        if ( tmp2 != null ) {
+                            ctx2.stop(tmp2);
+                        }
+                    });
+                    if ( tmp != null ) {
+                        nestingDepth++;
+                        if ( nestingDepth > maxMacroNestingDepth ) {
+                            throw new RuntimeException("Macro expansion nested more than "+maxMacroNestingDepth+" levels, giving up.");
+                        }
+                        replacement = tmp;
+                    }
+                } while (tmp!= null);
+                node.replaceWith(replacement);
             }
         });
 
@@ -164,6 +170,32 @@ public class Assembler
             }
         });
         return bout.toByteArray();
+    }
+
+    private ASTNode expandMacro(ASTNode node, ParseContext parseCtx)
+    {
+        if ( node instanceof MacroInvocation)
+        {
+            final MacroInvocation inv = (MacroInvocation) node;
+            final Identifier name = inv.getName();
+
+            final Symbol sym = parseCtx.symbolTable().get(name);
+            if ( sym == null ) {
+                throw new RuntimeException("Unknown macro "+name);
+            }
+            if ( ! sym.is(Symbol.Type.MACRO ) ) {
+                throw new RuntimeException("Expected macro "+name+" but found "+sym);
+            }
+            final MacroDefinition def = (MacroDefinition) sym.value();
+            final int expectedArgCount = def.getArgumentCount();
+            final int actualArgCount = inv.getArgumentCount();
+            if ( expectedArgCount != actualArgCount) {
+                throw new RuntimeException("Macro " + name + " expected " + expectedArgCount
+                                               + " but invocation has "+ actualArgCount);
+            }
+            return expandMacroInvocation(inv, def, parseCtx);
+        }
+        return null;
     }
 
     private ASTNode expandMacroInvocation(MacroInvocation inv, MacroDefinition def, ParseContext ctx)

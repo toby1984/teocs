@@ -304,7 +304,14 @@ public class Parser
 
         while ( true )
         {
-            if ( token.is(TokenType.ROUND_OPEN ) )
+            if ( token.is(TokenType.COMMA ) )
+            {
+                if ( opStack.stream().anyMatch(x -> x.operator == Operator.FUNCTION_INVOCATION ) ) {
+                    consumeToken();
+                    sawOperator = true;
+                }
+            }
+            else if ( token.is(TokenType.ROUND_OPEN ) )
             {
                 final OperatorNode node = new OperatorNode(Operator.PARENTHESIS, token.region() );
                 consumeToken();
@@ -416,7 +423,7 @@ public class Parser
             final Symbol symbol = context.symbolTable().get(inv.getName());
             MacroDefinition def = (MacroDefinition) symbol.value();
             argCount = def.getArgumentCount();
-            opLiteral = "function '"+def.getName().value+"'";
+            opLiteral = "macro '"+def.getName().value+"'";
             destNode = inv;
         }
         if ( valueStack.size() < argCount ) {
@@ -430,7 +437,7 @@ public class Parser
         {
             Collections.reverse(destNode.children());
         } else {
-            Collections.reverse(destNode.children().subList(1, destNode.childCount()-1 ) );
+            Collections.reverse(destNode.children().subList(1, destNode.childCount() ) );
         }
         valueStack.push( destNode );
     }

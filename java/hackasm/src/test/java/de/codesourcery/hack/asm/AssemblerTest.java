@@ -81,6 +81,30 @@ public class AssemblerTest
     }
 
     @Test
+    public void testRecursiveMacroExpansion() {
+
+        assertInsn( 0b111_0101010_100_000, asm.assemble( "" +
+                                                             ".macro test1(src,dst) = dst=src\n" +
+                                                             ".macro test2(src,dst) = test1(src,dst)\n" +
+                                                             "test2(0,A)" ) );
+    }
+
+    @Test
+    public void testInfiniteNestingMacroExpansion() {
+
+        try
+        {
+            asm.assemble("" +
+                             ".macro test1(src,dst) = test2(src,dst)\n" +
+                             ".macro test2(src,dst) = test1(src,dst)\n" +
+                             "test2(0,A)");
+            fail("Should've failed");
+        } catch(RuntimeException e) {
+            assertTrue( e.getMessage() != null && e.getMessage().contains("Macro expansion nested more than 10 levels") );
+        }
+    }
+
+    @Test
     public void testComputations() {
 
         // a == 0
