@@ -79,6 +79,13 @@ public class VMTranslator
 
     //  Push the value of segment[index] onto the stack.
     private void push(MemorySegment segment, int idx) {
+
+        if ( segment == MemorySegment.CONSTANT ) {
+            writer.println("@"+idx);
+            writer.println("D=A");
+            pushD();
+            return;
+        }
         /*
          * RAM[0] - SP - Top of stack ptr
          * RAM[1] - LCL - Points to the base of the current VMs function's 'local' segment
@@ -93,9 +100,7 @@ public class VMTranslator
         writer.println("@"+idx);
         writer.println("A=D+A"); // A = (ptr to start of segment) + idx
         writer.println("D=M"); // D=*((ptr to start of segment) + idx)
-        writer.println("@"+0); // A = 0 -> ToS ptr
-        writer.println("M=D"); // A = Mem[0] = Top of stack
-        writer.println("M=M-1"); // update ToS ptr
+        pushD();
     }
 
     //   Pop the top stack value and store it in segment[index].
@@ -103,9 +108,9 @@ public class VMTranslator
 
         // calculate destination address
         writer.println("@"+ptrFor(segment));
-        writer.println("D=M");
+        writer.println("D=M"); // load base address
         writer.println("@"+idx);
-        writer.println("D=D+A"); // A = destination address
+        writer.println("D=D+A"); // A = base address + idx
 
         writer.println("@13"); // store destination adr in tmp variable
         writer.println("M=D");
@@ -230,6 +235,11 @@ public class VMTranslator
         writer.println("D=A&D");
         pushD();
     }
+    private void ifGoto(String destination) {
+        popIntoD();
+        writer.println("@"+destination);
+        writer.println("D;JNE");
+    }
 
     private void or()
     {
@@ -267,6 +277,21 @@ public class VMTranslator
         writer.println("M=M-1"); // bump ptr
     }
 
+    private MemorySegment segmentFor(String name) {
+        switch(name.toLowerCase() ) {
+            case "argument": return MemorySegment.ARGUMENT;
+            case "local":    return MemorySegment.LOCAL;
+            case "static":   return MemorySegment.STATIC;
+            case "constant": return MemorySegment.CONSTANT;
+            case "this":     return MemorySegment.THIS;
+            case "that":     return MemorySegment.THAT;
+            case "pointer":  return MemorySegment.POINTER;
+            case "temp":     return MemorySegment.TEMP;
+            default:
+                throw new IllegalStateException("Unexpected value: " + name.toLowerCase());
+        }
+    }
+
     private int ptrFor(MemorySegment segment) {
         switch(segment)
         {
@@ -281,50 +306,83 @@ public class VMTranslator
 
     public String translate(String source)
     {
-        final List<String> lines = Arrays.stream(  source.split( "\n") ).map( String::trim ).collect( Collectors.toList());;
+        final List<String> lines = Arrays.stream( source.split( "\n") ).map( String::trim ).collect(Collectors.toList());
 
         for ( String line : lines )
         {
-            final List<String> parts =
-                Arrays.stream( line.split("\\s" ) ).map(String::trim).collect( Collectors.toList());
+            List<String> args =
+                Arrays.stream( line.split("\\s" ) ).map(String::trim).collect(Collectors.toList());
 
-            if ( parts.isEmpty() ) {
+            if ( args.isEmpty() ) {
                 continue;
             }
 
-            switch( parts.get(0).toLowerCase() )
+            final String cmd = args.get(0).toLowerCase();
+            if ( args.size() > 1 ) {
+                args = args.subList(1,args.size());
+            }
+
+            switch( cmd )
             {
                 case "push": // push <segment> <index>
+                    if ( args.size() != 2 ) {
+                        throw new RuntimeException("push <segment> <index> requires two arguments, got " + args.size());
+                    }
+                    push( segmentFor(args.get(0)),Integer.parseInt(args.get(1)) );
                     break;
                 case "pop": //   pop <segment> <index>
+                    if ( args.size() != 2 ) {
+                        throw new RuntimeException("pop <segment> <index> requires two arguments, got " + args.size());
+                    }
+                    pop( segmentFor(args.get(0)),Integer.parseInt(args.get(1) ) );
                     break;
                 // arithmetic
                 case "add":
+                    add();
                     break;
                 case "sub":
                     break;
                 case "neg":
+                    neg();
                     break;
                 case "and":
+                    and();
                     break;
                 case "or":
+                    or();
                     break;
                 case "not":
+                    not();
                     break;
                 // comparison - yields boolean value (true = x0ffff , false = 0 )
                 case "eq":
+                    eq();
                     break;
                 case "gt":
+                    gt();
                     break;
                 case "lt":
+                    lt();
                     break;
                 // misc
                 case "label":   // label <symbol>
+                    if ( args.size() != 1 ) {
+                        throw new RuntimeException("label <symbol> requires one argument, got " + args.size() );
+                    }
+                    writeLabel(args.get(0));
                     break;
                 // control flow
                 case "goto":    // goto <smybol>
+                    if ( args.size() != 1 ) {
+                        throw new RuntimeException("goto <symbol> requires one argument, got " + args.size() );
+                    }
+                    writeJmp(args.get(0));
                     break;
                 case "if-goto": // if-goto <symbol>
+                    if ( args.size() != 1 ) {
+                        throw new RuntimeException("if-goto <symbol> requires one argument, got " + args.size() );
+                    }
+                    ifGoto(args.get(0));
                     break;
                 case "function": // function <name> <number of local variables>
                     break;
@@ -334,7 +392,7 @@ public class VMTranslator
                     break;
                     // error
                 default:
-                    throw new RuntimeException("Unknown command: "+line);
+                    throw new RuntimeException("Unparseable line: "+line);
             }
         }
         throw new RuntimeException("Not implemented");
