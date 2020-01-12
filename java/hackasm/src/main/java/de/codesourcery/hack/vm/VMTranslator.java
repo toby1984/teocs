@@ -3,6 +3,7 @@ package de.codesourcery.hack.vm;
 import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 public class VMTranslator
@@ -43,10 +44,11 @@ public class VMTranslator
      *
      */
     public enum MemorySegment {
+        CONSTANT( "constant" ),
+        STATIC( "static" ),
+        // other
         ARGUMENT( "argument" ),
         LOCAL( "local" ),
-        STATIC( "static" ),
-        CONSTANT( "constant" ),
         THIS( "this" ),
         THAT( "that" ),
         POINTER( "pointer" ),
@@ -61,29 +63,47 @@ public class VMTranslator
     }
 
     private void memWrite(int address,int value) {
-        writer.println("@"+value);
-        writer.println("D=A");
-        writer.println("@"+address);
-        writer.println("M=D");
+        emit("@"+value);
+        emit("D=A");
+        emit("@"+address);
+        emit("M=D");
     }
 
     private void memReadIntoD(int address) {
-        writer.println("@"+address);
-        writer.println("D=M");
+        emit("@"+address);
+        emit("D=M");
     }
 
     private void memReadIntoA(int address) {
-        writer.println("@"+address);
-        writer.println("A=M");
+        emit("@"+address);
+        emit("A=M");
     }
 
     //  Push the value of segment[index] onto the stack.
     private void push(MemorySegment segment, int idx) {
 
+        /*
+constant: This segment is truly virtual, as it does not occupy any physical space on the target architecture.
+Instead, the VM implementation handles any VM access to 〈constant i〉 by simply supplying the constant i.
+         */
         if ( segment == MemorySegment.CONSTANT ) {
-            writer.println("@"+idx);
-            writer.println("D=A");
+            emit("@"+idx);
+            emit("D=A");
             pushD();
+            return;
+        }
+        if ( segment == MemorySegment.STATIC ) {
+
+            emit("@16");
+            emit("D=A");
+            emit("@"+idx);
+            emit("A=D+A"); // A = 16 + idx
+            emit("D=M"); // D = Mem[16+idx]
+            emit("@0");
+            emit("A=M"); // A = Mem[0];
+            emit("M=D"); // Mem[A] = D
+            emit("@0");
+            emit("M=M-1"); // decrement stack pointer
             return;
         }
         /*
@@ -94,70 +114,85 @@ public class VMTranslator
          * RAM[4] - THAT -  Points to the base of the current VMs function's 'this' segment (within the heap)
          * RAM[5-12] - Holds the contents of the 'temp' segment
          * RAM[13-15] - Free to use by VM implementation for general purposes
+         * RAM[16-...] - static variables
          */
-        writer.println("@"+ ptrFor(segment)); // A = "address register"
-        writer.println("D=M"); // D=Mem[A] -> D = ptr to start of segment
-        writer.println("@"+idx);
-        writer.println("A=D+A"); // A = (ptr to start of segment) + idx
-        writer.println("D=M"); // D=*((ptr to start of segment) + idx)
+        emit("@"+ ptrFor(segment)); // A = "address register"
+        emit("D=M"); // D=Mem[A] -> D = ptr to start of segment
+        emit("@"+idx);
+        emit("A=D+A"); // A = (ptr to start of segment) + idx
+        emit("D=M"); // D=*((ptr to start of segment) + idx)
         pushD();
     }
 
     //   Pop the top stack value and store it in segment[index].
     private void pop(MemorySegment segment, int idx) {
 
-        // calculate destination address
-        writer.println("@"+ptrFor(segment));
-        writer.println("D=M"); // load base address
-        writer.println("@"+idx);
-        writer.println("D=D+A"); // A = base address + idx
+        if ( segment == MemorySegment.CONSTANT ) {
+            throw new IllegalArgumentException("Can't pop to CONSTANT segment");
+        }
+        if ( segment == MemorySegment.STATIC ) {
+            emit("@16");
+            emit("D=A");
+            emit("@"+idx);
+            emit("D=D+A"); // D = destination address where to store value
+        }
+        else
+        {
+            // calculate destination address
+            emit("@" + ptrFor(segment));
+            emit("D=M"); // load base address
+            emit("@" + idx);
+            emit("D=D+A");  // D = destination address where to store value
+        }
 
-        writer.println("@13"); // store destination adr in tmp variable
-        writer.println("M=D");
+        emit("@13"); // store destination adr in tmp variable
+        emit("M=D");
 
-        writer.println("@"+0); // A = 0 -> ToS ptr
-        writer.println("M=M+1"); // bump ptr
-        writer.println("D=M");
+        emit("@"+0); // A = 0 -> ToS ptr
+        emit("AM=M+1"); // bump ptr
+        emit("D=M");
 
-        writer.println("@13");
-        writer.println("M=D");
+        // read destination address from tmp variable
+        emit("@13");
+        emit("A=M");
+        emit("M=D");
     }
 
     private void popIntoA() {
-        writer.println("@"+0); // A = 0 -> ToS ptr
-        writer.println("AM=M+1"); // bump ptr
-        writer.println("A=M");
+        emit("@"+0); // A = 0 -> ToS ptr
+        emit("AM=M+1"); // bump ptr
+        emit("A=M");
     }
 
     private void popIntoD() {
-        writer.println("@"+0); // A = 0 -> ToS ptr
-        writer.println("AM=M+1"); // bump ptr
-        writer.println("D=M");
+        emit("@"+0); // A = 0 -> ToS ptr
+        emit("AM=M+1"); // bump ptr
+        emit("D=M");
     }
 
     private void add() {
         popIntoD(); // D = 2nd argument
         popIntoA(); // A = first argument
-        writer.println("D=D+A");
+        emit("D=D+A");
         pushD();
     }
 
     private void sub() {
         popIntoD(); // D = 2nd argument
         popIntoA(); // A = first argument
-        writer.println("D=A-D");
+        emit("D=A-D");
         pushD();
     }
 
     private void neg() {
         popIntoD(); // D = 2nd argument
-        writer.println("D=-D");
+        emit("D=-D");
         pushD();
     }
 
     private void writeJmp(String destination) {
-        writer.println("@"+destination);
-        writer.println("0;JMP");
+        emit("@"+destination);
+        emit("0;JMP");
     }
 
     private void eq()
@@ -165,18 +200,19 @@ public class VMTranslator
         popIntoD(); // D = 2nd argument
         popIntoA(); // A = first argument
 
-        writer.println("D=A-D");
+        emit("D=A-D");
         final String eqLabel = genLabel("eq");
         final String cont = genLabel("cont");
-        writer.println("@"+eqLabel);
-        writer.println("D;JEQ");
-        // -> not equals
-        writer.println("@0"); // true = -1 , false = 0
+        emit("@"+eqLabel);
+        emit("D;JEQ");
+        // this is the "not equals" path
+        emit("@0"); // true = -1 , false = 0
         pushA();
         writeJmp(cont);
 
+        // this is the "equals" path
         writeLabel(eqLabel);
-        writer.println("@-1"); // true = -1 , false = 0
+        emit("@-1"); // true = -1 , false = 0
         pushA();
 
         writeLabel(cont);
@@ -190,16 +226,17 @@ public class VMTranslator
         // A > D
         final String gtLabel = genLabel("gt");
         final String cont = genLabel("cont");
-        writer.println("D=D-A");
-        writer.println("@"+gtLabel);
-        writer.println("D;JGT "+gtLabel);
-        // -> not greater
-        writer.println("@0"); //  false = 0
+        emit("D=D-A");
+        emit("@"+gtLabel);
+        emit("D;JGT "+gtLabel);
+        // "not greater" path
+        emit("@0"); //  false = 0
         pushA();
         writeJmp(cont);
 
+        // "greater than" path
         writeLabel(gtLabel);
-        writer.println("@-1"); // true = -1
+        emit("@-1"); // true = -1
         pushA();
 
         writeLabel(cont);
@@ -213,16 +250,16 @@ public class VMTranslator
         // A < D
         final String ltLabel = genLabel("gt");
         final String cont = genLabel("cont");
-        writer.println("D=A-D");
-        writer.println("@"+ltLabel);
-        writer.println("D;JLT "+ltLabel);
+        emit("D=A-D");
+        emit("@"+ltLabel);
+        emit("D;JLT "+ltLabel);
         // -> not less
-        writer.println("@0"); //  false = 0
+        emit("@0"); //  false = 0
         pushA();
         writeJmp(cont);
 
         writeLabel(ltLabel);
-        writer.println("@-1"); // true = -1
+        emit("@-1"); // true = -1
         pushA();
 
         writeLabel(cont);
@@ -232,49 +269,49 @@ public class VMTranslator
     {
         popIntoD(); // D = 2nd argument
         popIntoA(); // A = first argument
-        writer.println("D=A&D");
+        emit("D=A&D");
         pushD();
     }
+
     private void ifGoto(String destination) {
         popIntoD();
-        writer.println("@"+destination);
-        writer.println("D;JNE");
+        emit("@"+destination);
+        emit("D;JNE");
     }
 
     private void or()
     {
         popIntoD(); // D = 2nd argument
         popIntoA(); // A = first argument
-        writer.println("D=A|D");
+        emit("D=A|D");
         pushD();
     }
 
     private void not()
     {
         popIntoD(); // D = 2nd argument
-        writer.println("D=!D");
+        emit("D=!D");
         pushD();
     }
 
     private void writeLabel(String label) {
-        writer.println(label+":");
+        emit(label+":");
     }
-
 
     private void pushA() {
 
-        writer.println("D=A");
+        emit("D=A");
         pushD();
     }
 
     private void pushD() {
 
-        writer.println("@"+0); // A = 0 -> ToS ptr
-        writer.println("A=M");
-        writer.println("M=D");
+        emit("@"+0); // A = 0 -> ToS ptr
+        emit("A=M");
+        emit("M=D");
 
-        writer.println("@"+0); // A = 0 -> ToS ptr
-        writer.println("M=M-1"); // bump ptr
+        emit("@"+0); // A = 0 -> ToS ptr
+        emit("M=M-1"); // bump ptr
     }
 
     private MemorySegment segmentFor(String name) {
@@ -292,36 +329,54 @@ public class VMTranslator
         }
     }
 
-    private int ptrFor(MemorySegment segment) {
+    private int ptrFor(MemorySegment segment)
+    {
+        /*
+pointer, temp: These segments are each mapped directly onto a fixed area in the RAM. The pointer
+segment is mapped on RAM locations 3-4 (also called THIS and THAT) and the temp segment on
+locations 5-12 (also called R5, R6,..., R12). Thus access to pointer i should be translated to assembly
+code that accesses RAM location 3 + i, and access to temp i should be translated to assembly code that
+accesses RAM location 5 + i.
+
+         */
         switch(segment)
         {
-            case ARGUMENT: return 2;
             case LOCAL:    return 1;
+            case ARGUMENT: return 2;
             case THIS:     return 3;
+            case POINTER:  return 3;
             case THAT:     return 4;
+            case TEMP:     return 5;
             default:
                 throw new IllegalStateException("Unexpected value: " + segment);
         }
     }
 
-    public String translate(String source)
+    private void parse(String source, BiConsumer<String,List<String>> visitor )
     {
         final List<String> lines = Arrays.stream( source.split( "\n") ).map( String::trim ).collect(Collectors.toList());
 
         for ( String line : lines )
         {
             List<String> args =
-                Arrays.stream( line.split("\\s" ) ).map(String::trim).collect(Collectors.toList());
+                Arrays.stream(line.split("\\s")).map(String::trim).collect(Collectors.toList());
 
-            if ( args.isEmpty() ) {
-                continue;
+            if ( ! args.isEmpty())
+            {
+                final String cmd = args.get(0).toLowerCase();
+                if ( args.size() > 1 ) {
+                    args = args.subList(1,args.size());
+                }
+                visitor.accept(cmd, args);
             }
+        }
+    }
 
-            final String cmd = args.get(0).toLowerCase();
-            if ( args.size() > 1 ) {
-                args = args.subList(1,args.size());
-            }
-
+    public void translate(String source)
+    {
+        // now process source
+        parse(source, (cmd, args) ->
+        {
             switch( cmd )
             {
                 case "push": // push <segment> <index>
@@ -341,6 +396,7 @@ public class VMTranslator
                     add();
                     break;
                 case "sub":
+                    sub();
                     break;
                 case "neg":
                     neg();
@@ -385,16 +441,149 @@ public class VMTranslator
                     ifGoto(args.get(0));
                     break;
                 case "function": // function <name> <number of local variables>
+                    if ( args.size() != 2 ) {
+                        throw new RuntimeException("function <func name>  <local var count> requires two arguments, got " + args.size() );
+                    }
+                    function(args.get(0), Integer.parseInt(args.get(1)));
                     break;
                 case "call": // call <function name> <number of arguments to pass>
+                    if ( args.size() != 2 ) {
+                        throw new RuntimeException("call <func name>  <arg count> requires two arguments, got " + args.size() );
+                    }
+                    call(args.get(0), Integer.parseInt(args.get(1)));
                     break;
                 case "return": // return
+                    ret();
                     break;
-                    // error
+                // error
                 default:
-                    throw new RuntimeException("Unparseable line: "+line);
+                    throw new RuntimeException("Unparseable line: "+cmd+" "+ String.join(" ", args));
             }
+        });
+    }
+
+    private void ret()
+    {
+        // save LCL in as temporary in RAM[14]
+        emit("@"+ptrFor(MemorySegment.LOCAL ) );
+        emit("D=M");
+        emit("@14");
+        emit("M=D");
+
+        // retrieve return address ,
+        // *(LOCAL-5)
+        emit("@5");
+        emit("A=D-A");
+        emit("D=M");
+
+        // save return address as temporary in RAM[13]
+        emit("@13");
+        emit("M=D");
+
+        // reposition return value: *ARG = pop()
+        popIntoD();
+        emit("@"+ptrFor(MemorySegment.ARGUMENT));
+        emit("A=M");
+        emit("M=D");
+
+        // SP = ARG + 1
+        emit("D=A+1");
+        emit("@0");
+        emit("M=D");
+
+        // THAT = *(FRAME-1)
+        emit("@14");
+        emit("D=M-1");
+        emit("@"+ptrFor(MemorySegment.THAT));
+        emit("M=D");
+
+        // THIS = *(FRAME-2)
+        emit("D=D-1");
+        emit("@"+ptrFor(MemorySegment.THIS));
+        emit("M=D");
+
+        // ARG = *(FRAME-3)
+        emit("D=D-1");
+        emit("@"+ptrFor(MemorySegment.ARGUMENT));
+        emit("M=D");
+
+        // LCL = *(FRAME-4)
+        emit("D=D-1");
+        emit("@"+ptrFor(MemorySegment.LOCAL));
+        emit("M=D");
+
+        // jump to return address
+        emit("@13");
+        emit("A=M");
+        emit("0;JMP");
+    }
+
+    private void function(String name, int localArgCount)
+    {
+        // push zero values for local variables
+        if ( localArgCount > 0 )
+        {
+            emit("@0");
+            emit("A=M");
+            for (int i = 0; i < localArgCount ; i++)
+            {
+                emit("M=0");
+                emit("A=A-1");
+            }
+            emit("D=A");
+            emit("@0");
+            emit("M=D");
         }
-        throw new RuntimeException("Not implemented");
+    }
+
+    private void call(String funcName,int argCount) {
+
+        // push return address
+        final String cont = genLabel("call_"+funcName);
+        emit("@cont");
+        pushA();
+
+        // push LCL (RAM[1])
+        emit("@1");
+        emit("D=M");
+        pushD();
+
+        // push ARG (RAM[2])
+        emit("@2");
+        emit("D=M");
+        pushD();
+
+        // push THIS (RAM[3])
+        emit("@3");
+        emit("D=M");
+        pushD();
+        // push THAT (RAM[4])
+        emit("@4");
+        emit("D=M");
+        pushD();
+
+        // set ARG = SP - argcount - 5
+        emit("@0");
+        emit("D=M"); // D = SP
+        emit("@"+argCount);
+        emit("D=D-A"); // D = SP - argcount
+        emit("@5");
+        emit("D=D-A"); // D = SP - argcount - 5
+        emit("@"+ptrFor(MemorySegment.ARGUMENT));
+
+        // set LCL = SP
+        emit("@0");
+        emit("D=M");
+        emit("@"+ptrFor(MemorySegment.LOCAL));
+        emit("M=D");
+
+        // jump unconditionally
+        emit("@"+funcName);
+        emit("0;JMP");
+        writeLabel(cont );
+    }
+
+    private void emit(String s) {
+        writer.println(s);
     }
 }

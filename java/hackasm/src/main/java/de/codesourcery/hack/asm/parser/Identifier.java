@@ -5,9 +5,10 @@ import java.util.Arrays;
 public final class Identifier
 {
     private static final char[] VALID_FIRST_CHAR = "_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".toCharArray();
-    private static final char[] VALID_CHARS = "_0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".toCharArray();
+    private static final char[] VALID_CHARS = "_.0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".toCharArray();
 
     static {
+        // sort so binary search works properly
         Arrays.sort( VALID_CHARS );
         Arrays.sort( VALID_FIRST_CHAR );
     }
